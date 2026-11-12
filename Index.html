@@ -9,8 +9,8 @@
   SETUP:
    1. Set API_BASE_URL below to your deployed Apps Script /exec URL.
    2. Upload this file to GitHub Pages.
-   3. Public site:   /  (or ?page=catalog)
-      Admin portal: /?page=admin
+   3. Public:  /  or ?page=catalog
+      Admin:   /?page=admin
   ROUTES:
    ?page=catalog | purchase&id= | order&id= | download&token= | admin
 -->
@@ -53,16 +53,11 @@
   .data-table th,.data-table td{padding:.6rem .75rem;text-align:left;border-bottom:1px solid #eaeef2;vertical-align:top}
   .data-table th{background:#f6f8fa;font-size:.85rem;text-transform:uppercase;letter-spacing:.03em;color:#57606a}
   .data-table tr:last-child td{border-bottom:none}
-  .data-table tr.inactive td{opacity:.55}
   .data-table td.actions-cell{white-space:nowrap}
   .badge{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
-  .badge-active{background:#dafbe1;color:#1a7f37}
-  .badge-inactive{background:#ffebe9;color:#cf222e}
   .badge-pending{background:#fff8c5;color:#9a6700}
   .badge-paid{background:#dafbe1;color:#1a7f37}
   .badge-failed{background:#ffebe9;color:#cf222e}
-  .checkbox-row{display:flex;align-items:center;gap:.5rem;font-weight:600;margin-bottom:1rem}
-  .checkbox-row input{width:auto;margin:0}
   @media(max-width:480px){.site-header{padding:1.5rem 1rem}main{margin:1.25rem auto}.data-table{font-size:.85rem}.data-table th,.data-table td{padding:.45rem .5rem}}
 </style>
 </head>
@@ -83,7 +78,7 @@
     <div id="purchase-summary" class="card"></div>
     <form id="purchase-form" class="card" hidden>
       <label>Full name<input type="text" id="field-name" required autocomplete="name"></label>
-      <label>Email address<input type="email" id="field-email" required autocomplete="email"></label>
+      <label>Email address<input type="email" id="field-email" required autocomplete="email" placeholder="Required for card payments"></label>
       <label>Phone number (for payment)<input type="tel" id="field-phone" required autocomplete="tel" placeholder="+2519XXXXXXXX"></label>
       <div class="actions">
         <button type="button" class="btn btn-primary" id="btn-telebirr">Pay with Telebirr</button>
@@ -112,7 +107,7 @@
           </div>
         </form>
         <p class="muted" style="margin-top:1rem;">
-          First time? Open Code.gs, put your password in <code>setupAdminPassword()</code>, run it once, delete the password.
+          First time? Open Code.gs, set your password in <code>setupAdminPassword()</code>, run it once, then clear it.
         </p>
       </div>
     </div>
@@ -125,7 +120,7 @@
 
       <div class="tabs" id="admin-tabs">
         <button class="tab" data-tab="materials">Materials</button>
-        <button class="tab" data-tab="form">New Material</button>
+        <button class="tab" data-tab="form">New / Edit Material</button>
         <button class="tab" data-tab="orders">Orders</button>
       </div>
 
@@ -142,18 +137,14 @@
           <fieldset>
             <legend>File</legend>
             <p class="muted" style="margin-top:0;">
-              Upload a file up to 10MB, or paste a Drive file ID for larger files. Files are shared "Anyone with the link can view" automatically on upload.
+              Upload a file up to 10MB, or paste a Drive file ID for larger files. On upload the file is shared as "Anyone with the link can view" automatically.
             </p>
             <label>Upload file<input type="file" id="mat-file"></label>
-            <label>Or Drive file ID<input type="text" id="mat-fileid" placeholder="1AbCdEfGhIjKlMnOpQrStUvWxYz"></label>
+            <label>Or Drive file ID<input type="text" id="mat-fileid" placeholder="18FqlEmjLhz0OWWcE5FobWdS0VbFGIFUZ"></label>
             <p class="muted" id="mat-current-file"></p>
           </fieldset>
-          <div class="checkbox-row">
-            <input type="checkbox" id="mat-active" checked>
-            <label for="mat-active" style="margin:0;">Active (visible to buyers)</label>
-          </div>
           <div class="actions row">
-            <button type="submit" class="btn btn-primary" id="mat-submit">Save Material</button>
+            <button type="submit" class="btn btn-primary" id="mat-submit">Create Material</button>
             <button type="button" class="btn" id="mat-cancel" hidden>Cancel</button>
           </div>
         </form>
@@ -321,7 +312,7 @@ async function startPurchase(method) {
   const phone = document.getElementById('field-phone').value.trim();
   const itemId = form.dataset.itemId;
   if (!itemId || !name || !email || !phone) {
-    showError('Please fill in all required fields correctly.');
+    showError('Please fill in all required fields.');
     return;
   }
   const btn = document.getElementById(method === 'telebirr' ? 'btn-telebirr' : 'btn-card');
@@ -353,6 +344,7 @@ function renderOrder(orderId) {
         clearInterval(window.__pollTimer);
         box.innerHTML =
           '<p class="success">Payment confirmed.</p>' +
+          '<p class="muted">Item: ' + escapeHtml(order.itemTitle || '') + '</p>' +
           '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
           '<a class="btn btn-primary" href="?page=download&token=' +
             encodeURIComponent(order.downloadToken) + '">Download your material</a>';
@@ -366,7 +358,7 @@ function renderOrder(orderId) {
         box.innerHTML =
           '<p>Waiting for payment confirmation…</p>' +
           '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
-          '<p class="muted">If you completed payment and this message persists for more than a minute, please refresh.</p>';
+          '<p class="muted">If you completed payment and this persists for more than a minute, please refresh.</p>';
       }
     } catch (err) {
       clearInterval(window.__pollTimer);
@@ -505,31 +497,27 @@ async function loadAdminMaterials() {
       return;
     }
     const rows = items.map(function (m) {
-      const badge = m.active
-        ? '<span class="badge badge-active">Active</span>'
-        : '<span class="badge badge-inactive">Inactive</span>';
-      return '<tr class="' + (m.active ? '' : 'inactive') + '">' +
-        '<td>' + escapeHtml(m.title) + '</td>' +
+      return '<tr>' +
+        '<td>' + escapeHtml(m.title) + '<br><span class="muted">' + escapeHtml(m.id) + '</span></td>' +
         '<td>' + formatMoney(m.price) + '</td>' +
-        '<td>' + badge + '</td>' +
+        '<td><span class="muted">' + escapeHtml(String(m.fileId || '').slice(0, 16) + (m.fileId ? '…' : '')) + '</span></td>' +
         '<td class="actions-cell">' +
           '<button class="btn btn-small" data-action="edit" data-id="' + escapeHtml(m.id) + '">Edit</button> ' +
-          '<button class="btn btn-small" data-action="toggle" data-id="' + escapeHtml(m.id) + '">' +
-            (m.active ? 'Deactivate' : 'Activate') + '</button>' +
+          '<button class="btn btn-small btn-danger" data-action="delete" data-id="' + escapeHtml(m.id) + '">Delete</button>' +
         '</td>' +
       '</tr>';
     }).join('');
 
     container.innerHTML =
       '<table class="data-table"><thead><tr>' +
-      '<th>Title</th><th>Price</th><th>Status</th><th>Actions</th>' +
+      '<th>Title</th><th>Price</th><th>File ID</th><th>Actions</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
 
     container.querySelectorAll('button[data-action]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         const id = btn.dataset.id;
         if (btn.dataset.action === 'edit') editMaterial(id);
-        else if (btn.dataset.action === 'toggle') toggleMaterial(id);
+        else if (btn.dataset.action === 'delete') deleteMaterial(id);
       });
     });
   } catch (err) {
@@ -549,22 +537,22 @@ async function loadAdminOrders() {
     }
     const rows = orders.map(function (o) {
       const cls = o.status === 'PAID' ? 'paid' :
-                  o.status === 'FAILED' || o.status === 'CANCELLED' ? 'failed' :
-                  'pending';
+                  o.status === 'FAILED' || o.status === 'CANCELLED' ? 'failed' : 'pending';
       return '<tr>' +
         '<td>' + escapeHtml(o.orderId) + '</td>' +
         '<td>' + escapeHtml(o.itemTitle) + '</td>' +
         '<td>' + formatMoney(o.amount) + '</td>' +
-        '<td>' + escapeHtml(o.customerName) + '<br><span class="muted">' + escapeHtml(o.customerEmail) + '</span></td>' +
+        '<td>' + escapeHtml(o.customerName) + '<br><span class="muted">' + escapeHtml(o.phone) + '</span></td>' +
         '<td>' + escapeHtml(o.paymentMethod) + '</td>' +
-        '<td><span class="badge badge-' + cls + '">' + escapeHtml(o.status) + '</span></td>' +
+        '<td><span class="badge badge-' + cls + '">' + escapeHtml(o.status) + '</span>' +
+          (o.fulfillment ? '<br><span class="muted">' + escapeHtml(o.fulfillment) + '</span>' : '') + '</td>' +
         '<td>' + escapeHtml(o.createdAt) + '</td>' +
       '</tr>';
     }).join('');
     container.innerHTML =
       '<table class="data-table"><thead><tr>' +
-      '<th>Order ID</th><th>Item</th><th>Amount</th><th>Customer</th>' +
-      '<th>Method</th><th>Status</th><th>Created</th>' +
+      '<th>Order</th><th>Item</th><th>Amount</th><th>Customer</th>' +
+      '<th>Method</th><th>Status</th><th>Date</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
   } catch (err) {
     showError(err.message || 'Could not load orders.');
@@ -587,7 +575,6 @@ function resetMaterialForm() {
   document.getElementById('mat-price').value = '';
   document.getElementById('mat-file').value = '';
   document.getElementById('mat-fileid').value = '';
-  document.getElementById('mat-active').checked = true;
   document.getElementById('mat-current-file').textContent = '';
   updateMaterialFormMode();
 }
@@ -603,7 +590,6 @@ function editMaterial(id) {
   document.getElementById('mat-price').value = m.price;
   document.getElementById('mat-file').value = '';
   document.getElementById('mat-fileid').value = m.fileId || '';
-  document.getElementById('mat-active').checked = !!m.active;
   document.getElementById('mat-current-file').textContent =
     m.fileId ? 'Current Drive file ID: ' + m.fileId : '';
 
@@ -611,12 +597,19 @@ function editMaterial(id) {
   activateAdminTab('form');
 }
 
-async function toggleMaterial(id) {
+async function deleteMaterial(id) {
+  const m = adminMaterialsCache.find(function (x) { return x.id === id; });
+  if (!m) { showError('Material not found in cache.'); return; }
+  const ok = confirm(
+    'Delete "' + m.title + '"?\n\n' +
+    'This removes it from the catalog. Existing orders for this item will no longer be downloadable. This cannot be undone.'
+  );
+  if (!ok) return;
   try {
-    await adminApi('adminToggleMaterial', { id: id });
+    await adminApi('adminDeleteMaterial', { id: id });
     await loadAdminMaterials();
   } catch (err) {
-    showError(err.message || 'Could not toggle material.');
+    showError(err.message || 'Could not delete material.');
   }
 }
 
@@ -631,8 +624,7 @@ async function handleMaterialSubmit(e) {
     const payload = {
       title: document.getElementById('mat-title').value.trim(),
       description: document.getElementById('mat-description').value.trim(),
-      price: Number(document.getElementById('mat-price').value),
-      active: document.getElementById('mat-active').checked
+      price: Number(document.getElementById('mat-price').value)
     };
 
     const fileInput = document.getElementById('mat-file');
