@@ -5,99 +5,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HealthEd Materials</title>
 <!--
-  ============================================================
-  HealthEd Materials — Frontend (single-page app)
-  ============================================================
-
-  DEPLOYMENT
-  1. Set API_BASE_URL below to your deployed Apps Script /exec URL.
-  2. Upload this file to GitHub Pages (or any static host).
-  3. Open the site; the catalog loads automatically.
-
-  ROUTES (query-string based, so payment return URLs work)
-    ?page=catalog                    (default)
-    ?page=purchase&id=<itemId>
-    ?page=order&id=<orderId>
-    ?page=download&token=<token>
-
-  DEFAULTS
-    Currency: ETB (edit API/currency constants below)
-    Language: English (add an `am` block to I18N if you want Amharic)
-  ============================================================
+  HealthEd Materials — Frontend SPA (public + admin)
+  SETUP:
+   1. Set API_BASE_URL below to your deployed Apps Script /exec URL.
+   2. Upload this file to GitHub Pages.
+   3. Public site:   /  (or ?page=catalog)
+      Admin portal: /?page=admin
+  ROUTES:
+   ?page=catalog | purchase&id= | order&id= | download&token= | admin
 -->
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    background: #f6f8fa;
-    color: #1f2328;
-    line-height: 1.55;
-  }
-  .site-header {
-    background: #0b5d3b; color: #fff;
-    padding: 2rem 1rem; text-align: center;
-  }
-  .site-header h1 { margin: 0 0 .25rem; font-size: 1.6rem; }
-  .site-header p  { margin: 0; opacity: .9; }
-
-  main { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
-  main.narrow { max-width: 560px; }
-
-  .catalog {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.25rem;
-  }
-  .card {
-    background: #fff;
-    border: 1px solid #d0d7de;
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-  }
-  .card h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
-
-  .price { font-weight: 700; color: #0b5d3b; font-size: 1.1rem; }
-  .muted { color: #57606a; font-size: .9rem; }
-  .success { color: #1a7f37; font-weight: 600; }
-  .error { color: #cf222e; font-weight: 600; }
-
-  .error-box {
-    background: #ffebe9; border: 1px solid #ff8182; color: #cf222e;
-    padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
-  }
-
-  label { display: block; margin-bottom: 1rem; font-weight: 600; font-size: .95rem; }
-  input {
-    display: block; width: 100%; margin-top: .35rem;
-    padding: .65rem .75rem;
-    border: 1px solid #d0d7de; border-radius: 8px;
-    font-size: 1rem; font-family: inherit;
-  }
-
-  .actions { display: flex; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
-
-  .btn {
-    display: inline-block; text-align: center;
-    padding: .7rem 1.2rem; border-radius: 8px;
-    border: 1px solid transparent;
-    font-size: 1rem; font-weight: 600;
-    cursor: pointer; text-decoration: none;
-    background: #eaeef2; color: #1f2328;
-  }
-  .btn-primary   { background: #0b5d3b; color: #fff; }
-  .btn-secondary { background: #0969da; color: #fff; }
-  .btn:disabled  { opacity: .6; cursor: not-allowed; }
-
-  @media (max-width: 480px) {
-    .site-header { padding: 1.5rem 1rem; }
-    main { margin: 1.25rem auto; }
-  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f6f8fa;color:#1f2328;line-height:1.55}
+  .site-header{background:#0b5d3b;color:#fff;padding:2rem 1rem;text-align:center}
+  .site-header h1{margin:0 0 .25rem;font-size:1.6rem}
+  .site-header p{margin:0;opacity:.9}
+  main{max-width:1000px;margin:2rem auto;padding:0 1rem}
+  main.narrow{max-width:640px}
+  .catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem}
+  .card{background:#fff;border:1px solid #d0d7de;border-radius:10px;padding:1.25rem;margin-bottom:1.25rem}
+  .card h2{margin:0 0 .5rem;font-size:1.15rem}
+  .price{font-weight:700;color:#0b5d3b;font-size:1.1rem}
+  .muted{color:#57606a;font-size:.9rem}
+  .success{color:#1a7f37;font-weight:600}
+  .error{color:#cf222e;font-weight:600}
+  .error-box{background:#ffebe9;border:1px solid #ff8182;color:#cf222e;padding:.75rem 1rem;border-radius:8px;margin-bottom:1rem}
+  label{display:block;margin-bottom:1rem;font-weight:600;font-size:.95rem}
+  input,textarea,select{display:block;width:100%;margin-top:.35rem;padding:.65rem .75rem;border:1px solid #d0d7de;border-radius:8px;font-size:1rem;font-family:inherit;background:#fff}
+  textarea{resize:vertical;min-height:90px}
+  fieldset{border:1px solid #d0d7de;border-radius:8px;padding:1rem;margin:0 0 1rem}
+  legend{padding:0 .4rem;font-weight:700;font-size:.9rem}
+  .actions{display:flex;flex-direction:column;gap:.75rem;margin-top:1.25rem}
+  .actions.row{flex-direction:row;flex-wrap:wrap}
+  .btn{display:inline-block;text-align:center;padding:.7rem 1.2rem;border-radius:8px;border:1px solid transparent;font-size:1rem;font-weight:600;cursor:pointer;text-decoration:none;background:#eaeef2;color:#1f2328}
+  .btn-primary{background:#0b5d3b;color:#fff}
+  .btn-secondary{background:#0969da;color:#fff}
+  .btn-danger{background:#cf222e;color:#fff}
+  .btn-small{padding:.35rem .7rem;font-size:.85rem;border-radius:6px}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .admin-header{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #d0d7de;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
+  .admin-header strong{color:#0b5d3b}
+  .tabs{display:flex;gap:.25rem;border-bottom:1px solid #d0d7de;margin-bottom:1rem}
+  .tab{background:transparent;border:1px solid transparent;border-bottom:none;padding:.6rem 1rem;font-size:.95rem;font-weight:600;color:#57606a;border-radius:8px 8px 0 0;cursor:pointer}
+  .tab.active{background:#fff;border-color:#d0d7de;color:#0b5d3b;margin-bottom:-1px}
+  .tab-panel{padding-top:.5rem}
+  .data-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;font-size:.92rem}
+  .data-table th,.data-table td{padding:.6rem .75rem;text-align:left;border-bottom:1px solid #eaeef2;vertical-align:top}
+  .data-table th{background:#f6f8fa;font-size:.85rem;text-transform:uppercase;letter-spacing:.03em;color:#57606a}
+  .data-table tr:last-child td{border-bottom:none}
+  .data-table tr.inactive td{opacity:.55}
+  .data-table td.actions-cell{white-space:nowrap}
+  .badge{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+  .badge-active{background:#dafbe1;color:#1a7f37}
+  .badge-inactive{background:#ffebe9;color:#cf222e}
+  .badge-pending{background:#fff8c5;color:#9a6700}
+  .badge-paid{background:#dafbe1;color:#1a7f37}
+  .badge-failed{background:#ffebe9;color:#cf222e}
+  .checkbox-row{display:flex;align-items:center;gap:.5rem;font-weight:600;margin-bottom:1rem}
+  .checkbox-row input{width:auto;margin:0}
+  @media(max-width:480px){.site-header{padding:1.5rem 1rem}main{margin:1.25rem auto}.data-table{font-size:.85rem}.data-table th,.data-table td{padding:.45rem .5rem}}
 </style>
 </head>
 <body>
-
 <header class="site-header">
   <h1>HealthEd Materials</h1>
   <p>Educational resources for health science instructors and health care workers.</p>
@@ -106,24 +75,16 @@
 <main>
   <div id="error-box" class="error-box" role="alert" hidden></div>
 
-  <!-- CATALOG -->
   <section data-page="catalog" hidden>
     <div id="catalog-list" class="catalog"></div>
   </section>
 
-  <!-- PURCHASE -->
-  <section data-page="purchase" hidden>
+  <section data-page="purchase" hidden class="narrow">
     <div id="purchase-summary" class="card"></div>
     <form id="purchase-form" class="card" hidden>
-      <label>Full name
-        <input type="text" id="field-name" required autocomplete="name">
-      </label>
-      <label>Email address
-        <input type="email" id="field-email" required autocomplete="email">
-      </label>
-      <label>Phone number (for payment)
-        <input type="tel" id="field-phone" required autocomplete="tel" placeholder="+2519XXXXXXXX">
-      </label>
+      <label>Full name<input type="text" id="field-name" required autocomplete="name"></label>
+      <label>Email address<input type="email" id="field-email" required autocomplete="email"></label>
+      <label>Phone number (for payment)<input type="tel" id="field-phone" required autocomplete="tel" placeholder="+2519XXXXXXXX"></label>
       <div class="actions">
         <button type="button" class="btn btn-primary" id="btn-telebirr">Pay with Telebirr</button>
         <button type="button" class="btn btn-secondary" id="btn-card">Pay by card</button>
@@ -131,36 +92,93 @@
     </form>
   </section>
 
-  <!-- ORDER STATUS -->
-  <section data-page="order" hidden>
+  <section data-page="order" hidden class="narrow">
     <div id="order-status" class="card"></div>
   </section>
 
-  <!-- DOWNLOAD -->
-  <section data-page="download" hidden>
+  <section data-page="download" hidden class="narrow">
     <div id="download-status" class="card"></div>
+  </section>
+
+  <section data-page="admin" hidden>
+    <div id="admin-login" hidden>
+      <div class="card" style="max-width:420px;margin:2rem auto;">
+        <h2>Admin Login</h2>
+        <form id="admin-login-form">
+          <label>Username<input type="text" id="admin-user" required autocomplete="username"></label>
+          <label>Password<input type="password" id="admin-pass" required autocomplete="current-password"></label>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" id="admin-login-btn">Log in</button>
+          </div>
+        </form>
+        <p class="muted" style="margin-top:1rem;">
+          First time? Open Code.gs, put your password in <code>setupAdminPassword()</code>, run it once, delete the password.
+        </p>
+      </div>
+    </div>
+
+    <div id="admin-dashboard" hidden>
+      <div class="admin-header">
+        <span>Logged in as <strong id="admin-name">admin</strong></span>
+        <button class="btn btn-small" id="admin-logout">Logout</button>
+      </div>
+
+      <div class="tabs" id="admin-tabs">
+        <button class="tab" data-tab="materials">Materials</button>
+        <button class="tab" data-tab="form">New Material</button>
+        <button class="tab" data-tab="orders">Orders</button>
+      </div>
+
+      <div id="tab-materials" class="tab-panel"><div id="materials-list"></div></div>
+
+      <div id="tab-form" class="tab-panel" hidden>
+        <form id="material-form" class="card">
+          <input type="hidden" id="mat-id">
+          <h2 id="mat-form-title">New Material</h2>
+          <label>Title<input type="text" id="mat-title" required maxlength="200"></label>
+          <label>Description<textarea id="mat-description" required maxlength="2000"
+            placeholder="What the material covers, who it is for, format, length…"></textarea></label>
+          <label>Price (ETB)<input type="number" id="mat-price" required min="1" step="0.01"></label>
+          <fieldset>
+            <legend>File</legend>
+            <p class="muted" style="margin-top:0;">
+              Upload a file up to 10MB, or paste a Drive file ID for larger files. Files are shared "Anyone with the link can view" automatically on upload.
+            </p>
+            <label>Upload file<input type="file" id="mat-file"></label>
+            <label>Or Drive file ID<input type="text" id="mat-fileid" placeholder="1AbCdEfGhIjKlMnOpQrStUvWxYz"></label>
+            <p class="muted" id="mat-current-file"></p>
+          </fieldset>
+          <div class="checkbox-row">
+            <input type="checkbox" id="mat-active" checked>
+            <label for="mat-active" style="margin:0;">Active (visible to buyers)</label>
+          </div>
+          <div class="actions row">
+            <button type="submit" class="btn btn-primary" id="mat-submit">Save Material</button>
+            <button type="button" class="btn" id="mat-cancel" hidden>Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="tab-orders" class="tab-panel" hidden><div id="orders-list"></div></div>
+    </div>
   </section>
 </main>
 
 <script>
-/* ============================================================
-   CONFIG — the one place you must edit before deploying
-   ============================================================ */
-const API_BASE_URL    = 'https://script.google.com/macros/s/AKfycbwIy47OsXgPJA-DHD1QATGEEEKfox-5qpf4U9Q-QiuQxvb01Sn47lKIhEWXZJYFy7Wh/exec';      // <-- paste your Apps Script /exec URL here
-const CURRENCY        = 'ETB';
-const CURRENCY_LOCALE = 'en-ET';
+const API_BASE_URL     = 'https://script.google.com/macros/s/AKfycbwIy47OsXgPJA-DHD1QATGEEEKfox-5qpf4U9Q-QiuQxvb01Sn47lKIhEWXZJYFy7Wh/exec';
+const CURRENCY         = 'ETB';
+const CURRENCY_LOCALE  = 'en-ET';
 const POLL_INTERVAL_MS = 5000;
+const ADMIN_TOKEN_KEY  = 'he_admin_token';
+const ADMIN_USER_KEY   = 'he_admin_user';
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-/* ============================================================
-   API CLIENT
-   ============================================================ */
 async function api(action, payload) {
   if (!API_BASE_URL) throw new Error('API_BASE_URL is not configured in Index.html.');
   const res = await fetch(API_BASE_URL, {
     method: 'POST',
-    // text/plain keeps this a CORS-simple request (no preflight).
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, payload: payload || {} })
+    body: JSON.stringify({ action: action, payload: payload || {} })
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const json = await res.json();
@@ -168,31 +186,35 @@ async function api(action, payload) {
   return json.data;
 }
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
+async function adminApi(action, payload) {
+  const p = Object.assign({}, payload || {}, { adminToken: getAdminToken() });
+  try { return await api(action, p); }
+  catch (err) {
+    const msg = String(err.message || '').toLowerCase();
+    if (msg.indexOf('session expired') !== -1 || msg.indexOf('authentication required') !== -1) {
+      clearAdminSession();
+      renderAdmin();
+    }
+    throw err;
+  }
+}
+
 function formatMoney(amount) {
-  return new Intl.NumberFormat(CURRENCY_LOCALE, {
-    style: 'currency', currency: CURRENCY
-  }).format(amount);
+  return new Intl.NumberFormat(CURRENCY_LOCALE, { style: 'currency', currency: CURRENCY }).format(amount);
 }
-
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return String(str).replace(/[&<>"']/g, function (c) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+  });
 }
-
 function showError(msg) {
   const el = document.getElementById('error-box');
-  el.textContent = msg;
-  el.hidden = false;
+  el.textContent = msg; el.hidden = false;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function hideError() {
   const el = document.getElementById('error-box');
-  el.hidden = true;
-  el.textContent = '';
+  el.hidden = true; el.textContent = '';
 }
 function setBusy(btn, busy, busyText) {
   if (!btn) return;
@@ -204,15 +226,33 @@ function setBusy(btn, busy, busyText) {
     btn.textContent = btn.dataset.originalText;
   }
 }
+function readFileAsBase64(file) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () {
+      const result = String(reader.result);
+      resolve({ base64: result.substring(result.indexOf(',') + 1), mimeType: file.type, name: file.name });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
-/* ============================================================
-   ROUTER
-   ============================================================ */
+function getAdminToken() { return sessionStorage.getItem(ADMIN_TOKEN_KEY) || ''; }
+function setAdminSession(t, u) {
+  sessionStorage.setItem(ADMIN_TOKEN_KEY, t);
+  sessionStorage.setItem(ADMIN_USER_KEY, u || 'admin');
+}
+function clearAdminSession() {
+  sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+  sessionStorage.removeItem(ADMIN_USER_KEY);
+}
+
 function route() {
   const params = new URLSearchParams(window.location.search);
   const page = params.get('page') || 'catalog';
 
-  document.querySelectorAll('[data-page]').forEach(el => {
+  document.querySelectorAll('[data-page]').forEach(function (el) {
     el.hidden = el.getAttribute('data-page') !== page;
   });
 
@@ -223,60 +263,48 @@ function route() {
   else if (page === 'purchase') renderPurchase(params.get('id'));
   else if (page === 'order')    renderOrder(params.get('id'));
   else if (page === 'download') renderDownload(params.get('token'));
+  else if (page === 'admin')    renderAdmin();
   else                          renderCatalog();
 }
-
 window.addEventListener('DOMContentLoaded', route);
 window.addEventListener('popstate', route);
 
-/* ============================================================
-   PAGE: CATALOG
-   ============================================================ */
 async function renderCatalog() {
   const list = document.getElementById('catalog-list');
   list.innerHTML = '<p class="muted">Loading materials…</p>';
-
   try {
     const items = await api('catalog');
     if (!items || items.length === 0) {
       list.innerHTML = '<p class="muted">No materials are available right now.</p>';
       return;
     }
-    list.innerHTML = items.map(item => `
-      <article class="card">
-        <h2>${escapeHtml(item.title)}</h2>
-        <p>${escapeHtml(item.description)}</p>
-        <p class="price">${formatMoney(item.price)}</p>
-        <a class="btn" href="?page=purchase&id=${encodeURIComponent(item.id)}">Buy now</a>
-      </article>
-    `).join('');
+    list.innerHTML = items.map(function (item) {
+      return '<article class="card">' +
+        '<h2>' + escapeHtml(item.title) + '</h2>' +
+        '<p>' + escapeHtml(item.description) + '</p>' +
+        '<p class="price">' + formatMoney(item.price) + '</p>' +
+        '<a class="btn" href="?page=purchase&id=' + encodeURIComponent(item.id) + '">Buy now</a>' +
+        '</article>';
+    }).join('');
   } catch (err) {
     showError('Could not load materials. Please try again.');
     console.error(err);
   }
 }
 
-/* ============================================================
-   PAGE: PURCHASE
-   ============================================================ */
 async function renderPurchase(itemId) {
   const summary = document.getElementById('purchase-summary');
   const form    = document.getElementById('purchase-form');
   summary.innerHTML = '<p class="muted">Loading…</p>';
   form.hidden = true;
-
   try {
     const items = await api('catalog');
-    const item = (items || []).find(i => i.id === itemId);
-    if (!item) {
-      summary.innerHTML = '<p class="error">Material not found.</p>';
-      return;
-    }
-    summary.innerHTML = `
-      <h2>${escapeHtml(item.title)}</h2>
-      <p>${escapeHtml(item.description)}</p>
-      <p class="price">${formatMoney(item.price)}</p>
-    `;
+    const item = (items || []).find(function (i) { return i.id === itemId; });
+    if (!item) { summary.innerHTML = '<p class="error">Material not found.</p>'; return; }
+    summary.innerHTML =
+      '<h2>' + escapeHtml(item.title) + '</h2>' +
+      '<p>' + escapeHtml(item.description) + '</p>' +
+      '<p class="price">' + formatMoney(item.price) + '</p>';
     form.dataset.itemId = item.id;
     form.hidden = false;
   } catch (err) {
@@ -287,27 +315,21 @@ async function renderPurchase(itemId) {
 
 async function startPurchase(method) {
   hideError();
-  const form    = document.getElementById('purchase-form');
-  const name    = document.getElementById('field-name').value.trim();
-  const email   = document.getElementById('field-email').value.trim();
-  const phone   = document.getElementById('field-phone').value.trim();
-  const itemId  = form.dataset.itemId;
-
+  const form = document.getElementById('purchase-form');
+  const name = document.getElementById('field-name').value.trim();
+  const email = document.getElementById('field-email').value.trim();
+  const phone = document.getElementById('field-phone').value.trim();
+  const itemId = form.dataset.itemId;
   if (!itemId || !name || !email || !phone) {
     showError('Please fill in all required fields correctly.');
     return;
   }
-
   const btn = document.getElementById(method === 'telebirr' ? 'btn-telebirr' : 'btn-card');
   setBusy(btn, true, 'Creating your order…');
-
   try {
     const order = await api('createOrder', {
-      itemId,
-      customerName: name,
-      customerEmail: email,
-      customerPhone: phone,
-      paymentMethod: method
+      itemId: itemId, customerName: name, customerEmail: email,
+      customerPhone: phone, paymentMethod: method
     });
     if (!order.redirectUrl) throw new Error('No payment redirect URL returned.');
     window.location.href = order.redirectUrl;
@@ -317,45 +339,34 @@ async function startPurchase(method) {
     setBusy(btn, false);
   }
 }
+document.getElementById('btn-telebirr').addEventListener('click', function () { startPurchase('telebirr'); });
+document.getElementById('btn-card').addEventListener('click',    function () { startPurchase('card'); });
 
-document.getElementById('btn-telebirr').addEventListener('click', () => startPurchase('telebirr'));
-document.getElementById('btn-card').addEventListener('click', () => startPurchase('card'));
-
-/* ============================================================
-   PAGE: ORDER STATUS (polls until PAID / FAILED)
-   ============================================================ */
 function renderOrder(orderId) {
   if (!orderId) { showError('No order ID provided.'); return; }
-
   const box = document.getElementById('order-status');
   box.innerHTML = '<p class="muted">Checking your order…</p>';
-
-  const check = async () => {
+  const check = async function () {
     try {
-      const order = await api('orderStatus', { orderId });
-
+      const order = await api('orderStatus', { orderId: orderId });
       if (order.status === 'PAID') {
         clearInterval(window.__pollTimer);
-        box.innerHTML = `
-          <p class="success">Payment confirmed.</p>
-          <p class="muted">Order reference: ${escapeHtml(orderId)}</p>
-          <a class="btn btn-primary" href="?page=download&token=${encodeURIComponent(order.downloadToken)}">
-            Download your material
-          </a>
-        `;
+        box.innerHTML =
+          '<p class="success">Payment confirmed.</p>' +
+          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
+          '<a class="btn btn-primary" href="?page=download&token=' +
+            encodeURIComponent(order.downloadToken) + '">Download your material</a>';
       } else if (order.status === 'FAILED' || order.status === 'CANCELLED') {
         clearInterval(window.__pollTimer);
-        box.innerHTML = `
-          <p class="error">Payment was not completed.</p>
-          <p class="muted">Order reference: ${escapeHtml(orderId)}</p>
-          <a class="btn" href="?page=catalog">Back to materials</a>
-        `;
+        box.innerHTML =
+          '<p class="error">Payment was not completed.</p>' +
+          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
+          '<a class="btn" href="?page=catalog">Back to materials</a>';
       } else {
-        box.innerHTML = `
-          <p>Waiting for payment confirmation…</p>
-          <p class="muted">Order reference: ${escapeHtml(orderId)}</p>
-          <p class="muted">If you completed payment and this message persists for more than a minute, please refresh.</p>
-        `;
+        box.innerHTML =
+          '<p>Waiting for payment confirmation…</p>' +
+          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
+          '<p class="muted">If you completed payment and this message persists for more than a minute, please refresh.</p>';
       }
     } catch (err) {
       clearInterval(window.__pollTimer);
@@ -363,38 +374,300 @@ function renderOrder(orderId) {
       console.error(err);
     }
   };
-
   check();
   window.__pollTimer = setInterval(check, POLL_INTERVAL_MS);
 }
 
-/* ============================================================
-   PAGE: DOWNLOAD (single-use token, redirects to Drive)
-   ============================================================ */
 async function renderDownload(token) {
   const box = document.getElementById('download-status');
   box.innerHTML = '<p class="muted">Preparing your download…</p>';
-
-  if (!token) {
-    box.innerHTML = '<p class="error">Missing download token.</p>';
-    return;
-  }
-
+  if (!token) { box.innerHTML = '<p class="error">Missing download token.</p>'; return; }
   try {
-    const result = await api('getDownload', { token });
+    const result = await api('getDownload', { token: token });
     if (!result.url) throw new Error('No download URL returned.');
-    // The backend has already validated and burned the token.
     window.location.href = result.url;
   } catch (err) {
     const msg = String(err.message || '').toLowerCase();
     let friendly = 'Download failed. Please contact support.';
-    if (msg.indexOf('expired') !== -1)                       friendly = 'This download link has expired.';
-    else if (msg.indexOf('already been used') !== -1)         friendly = 'This download link has already been used.';
-    else if (msg.indexOf('not recognised') !== -1)           friendly = 'This download link is not recognised.';
-    else if (msg.indexOf('not eligible') !== -1)             friendly = 'This order is not eligible for download.';
-    box.innerHTML = `<p class="error">${escapeHtml(friendly)}</p>
-                     <a class="btn" href="?page=catalog">Back to materials</a>`;
+    if (msg.indexOf('expired') !== -1) friendly = 'This download link has expired.';
+    else if (msg.indexOf('already been used') !== -1) friendly = 'This download link has already been used.';
+    else if (msg.indexOf('not recognised') !== -1) friendly = 'This download link is not recognised.';
+    else if (msg.indexOf('not eligible') !== -1) friendly = 'This order is not eligible for download.';
+    box.innerHTML = '<p class="error">' + escapeHtml(friendly) + '</p>' +
+                    '<a class="btn" href="?page=catalog">Back to materials</a>';
     console.error(err);
+  }
+}
+
+/* ---------------- ADMIN ---------------- */
+let adminMaterialsCache = [];
+let adminTabsBound = false;
+let adminEditingId = '';
+
+async function renderAdmin() {
+  const loginBox = document.getElementById('admin-login');
+  const dashBox  = document.getElementById('admin-dashboard');
+  const token = getAdminToken();
+  bindAdminOnce();
+
+  if (!token) {
+    loginBox.hidden = false;
+    dashBox.hidden = true;
+    return;
+  }
+  try {
+    const info = await api('adminPing', { adminToken: token });
+    loginBox.hidden = true;
+    dashBox.hidden = false;
+    document.getElementById('admin-name').textContent =
+      info.username || sessionStorage.getItem(ADMIN_USER_KEY) || 'admin';
+    activateAdminTab('materials');
+  } catch (err) {
+    clearAdminSession();
+    loginBox.hidden = false;
+    dashBox.hidden = true;
+  }
+}
+
+function bindAdminOnce() {
+  if (adminTabsBound) return;
+  adminTabsBound = true;
+
+  document.getElementById('admin-login-form')
+    .addEventListener('submit', handleAdminLogin);
+  document.getElementById('admin-logout')
+    .addEventListener('click', handleAdminLogout);
+
+  document.querySelectorAll('#admin-tabs .tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      const target = tab.dataset.tab;
+      if (target === 'form' && !adminEditingId) resetMaterialForm();
+      activateAdminTab(target);
+    });
+  });
+
+  document.getElementById('material-form')
+    .addEventListener('submit', handleMaterialSubmit);
+  document.getElementById('mat-cancel')
+    .addEventListener('click', function () {
+      resetMaterialForm();
+      activateAdminTab('materials');
+    });
+}
+
+async function handleAdminLogin(e) {
+  e.preventDefault();
+  hideError();
+  const btn = document.getElementById('admin-login-btn');
+  setBusy(btn, true, 'Logging in…');
+  try {
+    const res = await api('adminLogin', {
+      username: document.getElementById('admin-user').value.trim(),
+      password: document.getElementById('admin-pass').value
+    });
+    setAdminSession(res.token, res.username);
+    document.getElementById('admin-pass').value = '';
+    await renderAdmin();
+  } catch (err) {
+    showError(err.message || 'Login failed.');
+  } finally {
+    setBusy(btn, false);
+  }
+}
+
+async function handleAdminLogout() {
+  try { await adminApi('adminLogout'); } catch (e) {}
+  clearAdminSession();
+  await renderAdmin();
+}
+
+function activateAdminTab(name) {
+  document.querySelectorAll('#admin-tabs .tab').forEach(function (t) {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  ['materials', 'form', 'orders'].forEach(function (tabName) {
+    const panel = document.getElementById('tab-' + tabName);
+    if (panel) panel.hidden = (tabName !== name);
+  });
+  if (name === 'materials') loadAdminMaterials();
+  if (name === 'orders')    loadAdminOrders();
+  if (name === 'form')      updateMaterialFormMode();
+}
+
+async function loadAdminMaterials() {
+  const container = document.getElementById('materials-list');
+  container.innerHTML = '<p class="muted">Loading materials…</p>';
+  try {
+    const items = await adminApi('adminListMaterials');
+    adminMaterialsCache = items || [];
+    if (items.length === 0) {
+      container.innerHTML = '<p class="muted">No materials yet. Click "New Material" to add one.</p>';
+      return;
+    }
+    const rows = items.map(function (m) {
+      const badge = m.active
+        ? '<span class="badge badge-active">Active</span>'
+        : '<span class="badge badge-inactive">Inactive</span>';
+      return '<tr class="' + (m.active ? '' : 'inactive') + '">' +
+        '<td>' + escapeHtml(m.title) + '</td>' +
+        '<td>' + formatMoney(m.price) + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td class="actions-cell">' +
+          '<button class="btn btn-small" data-action="edit" data-id="' + escapeHtml(m.id) + '">Edit</button> ' +
+          '<button class="btn btn-small" data-action="toggle" data-id="' + escapeHtml(m.id) + '">' +
+            (m.active ? 'Deactivate' : 'Activate') + '</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    container.innerHTML =
+      '<table class="data-table"><thead><tr>' +
+      '<th>Title</th><th>Price</th><th>Status</th><th>Actions</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    container.querySelectorAll('button[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const id = btn.dataset.id;
+        if (btn.dataset.action === 'edit') editMaterial(id);
+        else if (btn.dataset.action === 'toggle') toggleMaterial(id);
+      });
+    });
+  } catch (err) {
+    showError(err.message || 'Could not load materials.');
+    container.innerHTML = '';
+  }
+}
+
+async function loadAdminOrders() {
+  const container = document.getElementById('orders-list');
+  container.innerHTML = '<p class="muted">Loading orders…</p>';
+  try {
+    const orders = await adminApi('adminListOrders');
+    if (!orders || orders.length === 0) {
+      container.innerHTML = '<p class="muted">No orders yet.</p>';
+      return;
+    }
+    const rows = orders.map(function (o) {
+      const cls = o.status === 'PAID' ? 'paid' :
+                  o.status === 'FAILED' || o.status === 'CANCELLED' ? 'failed' :
+                  'pending';
+      return '<tr>' +
+        '<td>' + escapeHtml(o.orderId) + '</td>' +
+        '<td>' + escapeHtml(o.itemTitle) + '</td>' +
+        '<td>' + formatMoney(o.amount) + '</td>' +
+        '<td>' + escapeHtml(o.customerName) + '<br><span class="muted">' + escapeHtml(o.customerEmail) + '</span></td>' +
+        '<td>' + escapeHtml(o.paymentMethod) + '</td>' +
+        '<td><span class="badge badge-' + cls + '">' + escapeHtml(o.status) + '</span></td>' +
+        '<td>' + escapeHtml(o.createdAt) + '</td>' +
+      '</tr>';
+    }).join('');
+    container.innerHTML =
+      '<table class="data-table"><thead><tr>' +
+      '<th>Order ID</th><th>Item</th><th>Amount</th><th>Customer</th>' +
+      '<th>Method</th><th>Status</th><th>Created</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  } catch (err) {
+    showError(err.message || 'Could not load orders.');
+    container.innerHTML = '';
+  }
+}
+
+function updateMaterialFormMode() {
+  const editing = !!adminEditingId;
+  document.getElementById('mat-form-title').textContent = editing ? 'Edit Material' : 'New Material';
+  document.getElementById('mat-submit').textContent = editing ? 'Save Changes' : 'Create Material';
+  document.getElementById('mat-cancel').hidden = !editing;
+}
+
+function resetMaterialForm() {
+  adminEditingId = '';
+  document.getElementById('mat-id').value = '';
+  document.getElementById('mat-title').value = '';
+  document.getElementById('mat-description').value = '';
+  document.getElementById('mat-price').value = '';
+  document.getElementById('mat-file').value = '';
+  document.getElementById('mat-fileid').value = '';
+  document.getElementById('mat-active').checked = true;
+  document.getElementById('mat-current-file').textContent = '';
+  updateMaterialFormMode();
+}
+
+function editMaterial(id) {
+  const m = adminMaterialsCache.find(function (x) { return x.id === id; });
+  if (!m) { showError('Material not found in cache. Refresh and try again.'); return; }
+
+  adminEditingId = id;
+  document.getElementById('mat-id').value = id;
+  document.getElementById('mat-title').value = m.title;
+  document.getElementById('mat-description').value = m.description;
+  document.getElementById('mat-price').value = m.price;
+  document.getElementById('mat-file').value = '';
+  document.getElementById('mat-fileid').value = m.fileId || '';
+  document.getElementById('mat-active').checked = !!m.active;
+  document.getElementById('mat-current-file').textContent =
+    m.fileId ? 'Current Drive file ID: ' + m.fileId : '';
+
+  updateMaterialFormMode();
+  activateAdminTab('form');
+}
+
+async function toggleMaterial(id) {
+  try {
+    await adminApi('adminToggleMaterial', { id: id });
+    await loadAdminMaterials();
+  } catch (err) {
+    showError(err.message || 'Could not toggle material.');
+  }
+}
+
+async function handleMaterialSubmit(e) {
+  e.preventDefault();
+  hideError();
+  const btn = document.getElementById('mat-submit');
+  setBusy(btn, true, 'Saving…');
+
+  try {
+    const editing = !!adminEditingId;
+    const payload = {
+      title: document.getElementById('mat-title').value.trim(),
+      description: document.getElementById('mat-description').value.trim(),
+      price: Number(document.getElementById('mat-price').value),
+      active: document.getElementById('mat-active').checked
+    };
+
+    const fileInput = document.getElementById('mat-file');
+    const manualFileId = document.getElementById('mat-fileid').value.trim();
+
+    if (fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      if (file.size > MAX_UPLOAD_BYTES) {
+        throw new Error('File is too large. Max ' + (MAX_UPLOAD_BYTES / 1024 / 1024) + 'MB.');
+      }
+      setBusy(btn, true, 'Uploading file…');
+      const data = await readFileAsBase64(file);
+      payload.fileBase64 = data.base64;
+      payload.fileName = data.name;
+      payload.mimeType = data.mimeType;
+    } else if (manualFileId) {
+      payload.fileId = manualFileId;
+    } else if (!editing) {
+      throw new Error('Please upload a file or provide a Drive file ID.');
+    }
+
+    if (editing) {
+      payload.id = adminEditingId;
+      await adminApi('adminUpdateMaterial', payload);
+    } else {
+      await adminApi('adminCreateMaterial', payload);
+    }
+
+    resetMaterialForm();
+    activateAdminTab('materials');
+  } catch (err) {
+    showError(err.message || 'Save failed.');
+  } finally {
+    setBusy(btn, false);
+    updateMaterialFormMode();
   }
 }
 </script>
