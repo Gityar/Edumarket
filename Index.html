@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HealthEd Materials</title>
+<!--
+  ============================================================
+  HealthEd Materials — Frontend (single-page app)
+  ============================================================
+
+  DEPLOYMENT
+  1. Set API_BASE_URL below to your deployed Apps Script /exec URL.
+  2. Upload this file to GitHub Pages (or any static host).
+  3. Open the site; the catalog loads automatically.
+
+  ROUTES (query-string based, so payment return URLs work)
+    ?page=catalog                    (default)
+    ?page=purchase&id=<itemId>
+    ?page=order&id=<orderId>
+    ?page=download&token=<token>
+
+  DEFAULTS
+    Currency: ETB (edit API/currency constants below)
+    Language: English (add an `am` block to I18N if you want Amharic)
+  ============================================================
+-->
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f6f8fa;
+    color: #1f2328;
+    line-height: 1.55;
+  }
+  .site-header {
+    background: #0b5d3b; color: #fff;
+    padding: 2rem 1rem; text-align: center;
+  }
+  .site-header h1 { margin: 0 0 .25rem; font-size: 1.6rem; }
+  .site-header p  { margin: 0; opacity: .9; }
+
+  main { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+  main.narrow { max-width: 560px; }
+
+  .catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .card h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
+
+  .price { font-weight: 700; color: #0b5d3b; font-size: 1.1rem; }
+  .muted { color: #57606a; font-size: .9rem; }
+  .success { color: #1a7f37; font-weight: 600; }
+  .error { color: #cf222e; font-weight: 600; }
+
+  .error-box {
+    background: #ffebe9; border: 1px solid #ff8182; color: #cf222e;
+    padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+  }
+
+  label { display: block; margin-bottom: 1rem; font-weight: 600; font-size: .95rem; }
+  input {
+    display: block; width: 100%; margin-top: .35rem;
+    padding: .65rem .75rem;
+    border: 1px solid #d0d7de; border-radius: 8px;
+    font-size: 1rem; font-family: inherit;
+  }
+
+  .actions { display: flex; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
+
+  .btn {
+    display: inline-block; text-align: center;
+    padding: .7rem 1.2rem; border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    background: #eaeef2; color: #1f2328;
+  }
+  .btn-primary   { background: #0b5d3b; color: #fff; }
+  .btn-secondary { background: #0969da; color: #fff; }
+  .btn:disabled  { opacity: .6; cursor: not-allowed; }
+
+  @media (max-width: 480px) {
+    .site-header { padding: 1.5rem 1rem; }
+    main { margin: 1.25rem auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>HealthEd Materials</h1>
+  <p>Educational resources for health science instructors and health care workers.</p>
+</header>
+
+<main>
+  <div id="error-box" class="error-box" role="alert" hidden></div>
+
+  <!-- CATALOG -->
+  <section data-page="catalog" hidden>
+    <div id="catalog-list" class="catalog"></div>
+  </section>
+
+  <!-- PURCHASE -->
+  <section data-page="purchase" hidden>
+    <div id="purchase-summary" class="card"></div>
+    <form id="purchase-form" class="card" hidden>
+      <label>Full name
+        <input type="text" id="field-name" required autocomplete="name">
+      </label>
+      <label>Email address
+        <input type="email" id="field-email" required autocomplete="email">
+      </label>
+      <label>Phone number (for payment)
+        <input type="tel" id="field-phone" required autocomplete="tel" placeholder="+2519XXXXXXXX">
+      </label>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="btn-telebirr">Pay with Telebirr</button>
+        <button type="button" class="btn btn-secondary" id="btn-card">Pay by card</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ORDER STATUS -->
+  <section data-page="order" hidden>
+    <div id="order-status" class="card"></div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section data-page="download" hidden>
+    <div id="download-status" class="card"></div>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   CONFIG — the one place you must edit before deploying
+   ============================================================ */
+const API_BASE_URL    = 'https://script.google.com/macros/s/AKfycbwIy47OsXgPJA-DHD1QATGEEEKfox-5qpf4U9Q-QiuQxvb01Sn47lKIhEWXZJYFy7Wh/exec';      // <-- paste your Apps Script /exec URL here
+const CURRENCY        = 'ETB';
+const CURRENCY_LOCALE = 'en-ET';
+const POLL_INTERVAL_MS = 5000;
+
+/* ============================================================
+   API CLIENT
+   ============================================================ */
+async function api(action, payload) {
+  if (!API_BASE_URL) throw new Error('API_BASE_URL is not configured in Index.html.');
+  const res = await fetch(API_BASE_URL, {
+    method: 'POST',
+    // text/plain keeps this a CORS-simple request (no preflight).
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, payload: payload || {} })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Unknown backend error');
+  return json.data;
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function formatMoney(amount) {
+  return new Intl.NumberFormat(CURRENCY_LOCALE, {
+    style: 'currency', currency: CURRENCY
+  }).format(amount);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = msg;
+  el.hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function hideError() {
+  const el = document.getElementById('error-box');
+  el.hidden = true;
+  el.textContent = '';
+}
+function setBusy(btn, busy, busyText) {
+  if (!btn) return;
+  btn.disabled = busy;
+  if (busy) {
+    btn.dataset.originalText = btn.textContent;
+    btn.textContent = busyText || 'Please wait…';
+  } else if (btn.dataset.originalText) {
+    btn.textContent = btn.dataset.originalText;
+  }
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function route() {
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get('page') || 'catalog';
+
+  document.querySelectorAll('[data-page]').forEach(el => {
+    el.hidden = el.getAttribute('data-page') !== page;
+  });
+
+  hideError();
+  clearInterval(window.__pollTimer);
+
+  if (page === 'catalog')       renderCatalog();
+  else if (page === 'purchase') renderPurchase(params.get('id'));
+  else if (page === 'order')    renderOrder(params.get('id'));
+  else if (page === 'download') renderDownload(params.get('token'));
+  else                          renderCatalog();
+}
+
+window.addEventListener('DOMContentLoaded', route);
+window.addEventListener('popstate', route);
+
+/* ============================================================
+   PAGE: CATALOG
+   ============================================================ */
+async function renderCatalog() {
+  const list = document.getElementById('catalog-list');
+  list.innerHTML = '<p class="muted">Loading materials…</p>';
+
+  try {
+    const items = await api('catalog');
+    if (!items || items.length === 0) {
+      list.innerHTML = '<p class="muted">No materials are available right now.</p>';
+      return;
+    }
+    list.innerHTML = items.map(item => `
+      <article class="card">
+        <h2>${escapeHtml(item.title)}</h2>
+        <p>${escapeHtml(item.description)}</p>
+        <p class="price">${formatMoney(item.price)}</p>
+        <a class="btn" href="?page=purchase&id=${encodeURIComponent(item.id)}">Buy now</a>
+      </article>
+    `).join('');
+  } catch (err) {
+    showError('Could not load materials. Please try again.');
+    console.error(err);
+  }
+}
+
+/* ============================================================
+   PAGE: PURCHASE
+   ============================================================ */
+async function renderPurchase(itemId) {
+  const summary = document.getElementById('purchase-summary');
+  const form    = document.getElementById('purchase-form');
+  summary.innerHTML = '<p class="muted">Loading…</p>';
+  form.hidden = true;
+
+  try {
+    const items = await api('catalog');
+    const item = (items || []).find(i => i.id === itemId);
+    if (!item) {
+      summary.innerHTML = '<p class="error">Material not found.</p>';
+      return;
+    }
+    summary.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <p>${escapeHtml(item.description)}</p>
+      <p class="price">${formatMoney(item.price)}</p>
+    `;
+    form.dataset.itemId = item.id;
+    form.hidden = false;
+  } catch (err) {
+    showError('Could not load material.');
+    console.error(err);
+  }
+}
+
+async function startPurchase(method) {
+  hideError();
+  const form    = document.getElementById('purchase-form');
+  const name    = document.getElementById('field-name').value.trim();
+  const email   = document.getElementById('field-email').value.trim();
+  const phone   = document.getElementById('field-phone').value.trim();
+  const itemId  = form.dataset.itemId;
+
+  if (!itemId || !name || !email || !phone) {
+    showError('Please fill in all required fields correctly.');
+    return;
+  }
+
+  const btn = document.getElementById(method === 'telebirr' ? 'btn-telebirr' : 'btn-card');
+  setBusy(btn, true, 'Creating your order…');
+
+  try {
+    const order = await api('createOrder', {
+      itemId,
+      customerName: name,
+      customerEmail: email,
+      customerPhone: phone,
+      paymentMethod: method
+    });
+    if (!order.redirectUrl) throw new Error('No payment redirect URL returned.');
+    window.location.href = order.redirectUrl;
+  } catch (err) {
+    showError(err.message || 'Something went wrong. Please try again.');
+    console.error(err);
+    setBusy(btn, false);
+  }
+}
+
+document.getElementById('btn-telebirr').addEventListener('click', () => startPurchase('telebirr'));
+document.getElementById('btn-card').addEventListener('click', () => startPurchase('card'));
+
+/* ============================================================
+   PAGE: ORDER STATUS (polls until PAID / FAILED)
+   ============================================================ */
+function renderOrder(orderId) {
+  if (!orderId) { showError('No order ID provided.'); return; }
+
+  const box = document.getElementById('order-status');
+  box.innerHTML = '<p class="muted">Checking your order…</p>';
+
+  const check = async () => {
+    try {
+      const order = await api('orderStatus', { orderId });
+
+      if (order.status === 'PAID') {
+        clearInterval(window.__pollTimer);
+        box.innerHTML = `
+          <p class="success">Payment confirmed.</p>
+          <p class="muted">Order reference: ${escapeHtml(orderId)}</p>
+          <a class="btn btn-primary" href="?page=download&token=${encodeURIComponent(order.downloadToken)}">
+            Download your material
+          </a>
+        `;
+      } else if (order.status === 'FAILED' || order.status === 'CANCELLED') {
+        clearInterval(window.__pollTimer);
+        box.innerHTML = `
+          <p class="error">Payment was not completed.</p>
+          <p class="muted">Order reference: ${escapeHtml(orderId)}</p>
+          <a class="btn" href="?page=catalog">Back to materials</a>
+        `;
+      } else {
+        box.innerHTML = `
+          <p>Waiting for payment confirmation…</p>
+          <p class="muted">Order reference: ${escapeHtml(orderId)}</p>
+          <p class="muted">If you completed payment and this message persists for more than a minute, please refresh.</p>
+        `;
+      }
+    } catch (err) {
+      clearInterval(window.__pollTimer);
+      showError('Order not found.');
+      console.error(err);
+    }
+  };
+
+  check();
+  window.__pollTimer = setInterval(check, POLL_INTERVAL_MS);
+}
+
+/* ============================================================
+   PAGE: DOWNLOAD (single-use token, redirects to Drive)
+   ============================================================ */
+async function renderDownload(token) {
+  const box = document.getElementById('download-status');
+  box.innerHTML = '<p class="muted">Preparing your download…</p>';
+
+  if (!token) {
+    box.innerHTML = '<p class="error">Missing download token.</p>';
+    return;
+  }
+
+  try {
+    const result = await api('getDownload', { token });
+    if (!result.url) throw new Error('No download URL returned.');
+    // The backend has already validated and burned the token.
+    window.location.href = result.url;
+  } catch (err) {
+    const msg = String(err.message || '').toLowerCase();
+    let friendly = 'Download failed. Please contact support.';
+    if (msg.indexOf('expired') !== -1)                       friendly = 'This download link has expired.';
+    else if (msg.indexOf('already been used') !== -1)         friendly = 'This download link has already been used.';
+    else if (msg.indexOf('not recognised') !== -1)           friendly = 'This download link is not recognised.';
+    else if (msg.indexOf('not eligible') !== -1)             friendly = 'This order is not eligible for download.';
+    box.innerHTML = `<p class="error">${escapeHtml(friendly)}</p>
+                     <a class="btn" href="?page=catalog">Back to materials</a>`;
+    console.error(err);
+  }
+}
+</script>
+</body>
+</html>
