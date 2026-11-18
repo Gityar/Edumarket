@@ -4,101 +4,554 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HealthEd Materials</title>
-<!--
-  HealthEd Materials — Frontend SPA (public + admin)
-  SETUP:
-   1. Set API_BASE_URL below to your deployed Apps Script /exec URL.
-   2. Upload to GitHub Pages.
-   3. Public:  /  or ?page=catalog
-      Admin:   /?page=admin
-  ROUTES:
-   ?page=catalog | purchase&id= | order&id= | download&token= | admin
--->
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f6f8fa;color:#1f2328;line-height:1.55}
-  .site-header{background:#0b5d3b;color:#fff;padding:2rem 1rem;text-align:center}
-  .site-header h1{margin:0 0 .25rem;font-size:1.6rem}
-  .site-header p{margin:0;opacity:.9}
-  main{max-width:1000px;margin:2rem auto;padding:0 1rem}
-  main.narrow{max-width:640px}
-  .catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem}
-  .card{background:#fff;border:1px solid #d0d7de;border-radius:10px;padding:1.25rem;margin-bottom:1.25rem}
-  .card h2{margin:0 0 .5rem;font-size:1.15rem}
-  .price{font-weight:700;color:#0b5d3b;font-size:1.1rem}
-  .muted{color:#57606a;font-size:.9rem}
-  .success{color:#1a7f37;font-weight:600}
-  .error{color:#cf222e;font-weight:600}
-  .error-box{background:#ffebe9;border:1px solid #ff8182;color:#cf222e;padding:.75rem 1rem;border-radius:8px;margin-bottom:1rem}
-  label{display:block;margin-bottom:1rem;font-weight:600;font-size:.95rem}
-  input,textarea,select{display:block;width:100%;margin-top:.35rem;padding:.65rem .75rem;border:1px solid #d0d7de;border-radius:8px;font-size:1rem;font-family:inherit;background:#fff}
-  textarea{resize:vertical;min-height:90px}
-  fieldset{border:1px solid #d0d7de;border-radius:8px;padding:1rem;margin:0 0 1rem}
-  legend{padding:0 .4rem;font-weight:700;font-size:.9rem}
-  .actions{display:flex;flex-direction:column;gap:.75rem;margin-top:1.25rem}
-  .actions.row{flex-direction:row;flex-wrap:wrap}
-  .btn{display:inline-block;text-align:center;padding:.7rem 1.2rem;border-radius:8px;border:1px solid transparent;font-size:1rem;font-weight:600;cursor:pointer;text-decoration:none;background:#eaeef2;color:#1f2328}
-  .btn-primary{background:#0b5d3b;color:#fff}
-  .btn-secondary{background:#0969da;color:#fff}
-  .btn-danger{background:#cf222e;color:#fff}
-  .btn-small{padding:.35rem .7rem;font-size:.85rem;border-radius:6px}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
-  .admin-header{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #d0d7de;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
-  .admin-header strong{color:#0b5d3b}
-  .tabs{display:flex;gap:.25rem;border-bottom:1px solid #d0d7de;margin-bottom:1rem}
-  .tab{background:transparent;border:1px solid transparent;border-bottom:none;padding:.6rem 1rem;font-size:.95rem;font-weight:600;color:#57606a;border-radius:8px 8px 0 0;cursor:pointer}
-  .tab.active{background:#fff;border-color:#d0d7de;color:#0b5d3b;margin-bottom:-1px}
-  .tab-panel{padding-top:.5rem}
-  .data-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;font-size:.92rem}
-  .data-table th,.data-table td{padding:.6rem .75rem;text-align:left;border-bottom:1px solid #eaeef2;vertical-align:top}
-  .data-table th{background:#f6f8fa;font-size:.85rem;text-transform:uppercase;letter-spacing:.03em;color:#57606a}
-  .data-table tr:last-child td{border-bottom:none}
-  .data-table td.actions-cell{white-space:nowrap}
-  .badge{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
-  .badge-pending{background:#fff8c5;color:#9a6700}
-  .badge-paid{background:#dafbe1;color:#1a7f37}
-  .badge-failed{background:#ffebe9;color:#cf222e}
-  .telebirr-box{background:#f0f8ff;border:1px solid #0969da;border-radius:10px;padding:1rem;margin-bottom:1rem}
-  .telebirr-box p{margin:.35rem 0}
-  .telebirr-box .big-number{font-size:1.3rem;font-weight:700;letter-spacing:.02em}
-  .telebirr-box code{background:#fff;padding:.15rem .45rem;border-radius:4px;font-size:.95rem}
-  @media(max-width:480px){.site-header{padding:1.5rem 1rem}main{margin:1.25rem auto}.data-table{font-size:.85rem}.data-table th,.data-table td{padding:.45rem .5rem}}
+  :root {
+    --primary: #065f46;
+    --primary-hover: #047857;
+    --primary-light: #ecfdf5;
+    --primary-border: #a7f3d0;
+    --secondary: #0369a1;
+    --secondary-hover: #0284c7;
+    --danger: #dc2626;
+    --danger-light: #fef2f2;
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --text: #0f172a;
+    --text-muted: #475569;
+    --border: #e2e8f0;
+    --radius: 14px;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Header ---- */
+  .site-header {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 55%, #047857 100%);
+    color: #fff;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(6, 78, 59, 0.18);
+  }
+  .site-header-inner {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: .25rem .8rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+  }
+  .site-header h1 {
+    margin: 0 0 .4rem;
+    font-size: 1.95rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .site-header h1 a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .site-header p {
+    margin: 0;
+    opacity: .92;
+    font-size: 1.02rem;
+    max-width: 560px;
+    margin-inline: auto;
+  }
+
+  /* ---- Layout ---- */
+  main {
+    max-width: 1060px;
+    margin: 2.25rem auto 3.5rem;
+    padding: 0 1.25rem;
+  }
+  main.narrow {
+    max-width: 620px;
+  }
+
+  /* ---- Stepper ---- */
+  .stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .85rem 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .78rem;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: var(--text-muted);
+  }
+  .step-item.active { color: var(--primary); }
+  .step-item.active .step-num { background: var(--primary); color: #fff; }
+  .step-item.done { color: #059669; }
+  .step-item.done .step-num { background: #10b981; color: #fff; }
+
+  /* ---- Catalog Grid ---- */
+  .catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 1.5rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .catalog .card {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .catalog .card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: #cbd5e1;
+  }
+  .card h2 {
+    margin: 0 0 .5rem;
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.35;
+  }
+  .card-desc {
+    color: var(--text-muted);
+    font-size: .94rem;
+    margin: 0 0 1.25rem;
+  }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    margin-top: auto;
+  }
+  .price-tag {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid var(--primary-border);
+    font-weight: 800;
+    font-size: 1.05rem;
+    padding: .3rem .75rem;
+    border-radius: 8px;
+  }
+
+  .muted { color: var(--text-muted); font-size: .9rem; }
+  .success { color: #059669; font-weight: 700; }
+  .error { color: var(--danger); font-weight: 600; }
+
+  .error-box {
+    background: var(--danger-light);
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: .9rem 1.1rem;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ---- Forms ---- */
+  label {
+    display: block;
+    margin-bottom: 1.1rem;
+    font-weight: 600;
+    font-size: .92rem;
+    color: var(--text);
+  }
+  .label-hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: .84rem;
+  }
+  input, textarea, select {
+    display: block;
+    width: 100%;
+    margin-top: .4rem;
+    padding: .72rem .9rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.14);
+  }
+  textarea { resize: vertical; min-height: 96px; }
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem;
+    margin: 0 0 1.1rem;
+    background: #f8fafc;
+  }
+  legend { padding: 0 .5rem; font-weight: 700; font-size: .88rem; color: var(--text-muted); }
+
+  /* ---- Buttons ---- */
+  .actions { display: flex; flex-direction: column; gap: .75rem; margin-top: 1.35rem; }
+  .actions.row { flex-direction: row; flex-wrap: wrap; align-items: center; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    text-align: center;
+    padding: .75rem 1.3rem;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    font-size: .96rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    background: #fff;
+    color: var(--text);
+    transition: background .15s ease, transform .1s ease, box-shadow .15s ease;
+  }
+  .btn:hover:not(:disabled) {
+    background: #f8fafc;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+
+  .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+
+  .btn-secondary {
+    background: var(--secondary);
+    border-color: var(--secondary);
+    color: #fff;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--secondary-hover);
+    border-color: var(--secondary-hover);
+  }
+
+  .btn-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+  }
+  .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+
+  .btn-small {
+    padding: .4rem .75rem;
+    font-size: .82rem;
+    border-radius: 7px;
+  }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+  /* ---- Telebirr Individual Account Payment Card ---- */
+  .telebirr-box {
+    background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1px solid #86efac;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.35rem;
+  }
+  .telebirr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .85rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px dashed #86efac;
+  }
+  .telebirr-tag {
+    background: #16a34a;
+    color: #fff;
+    font-size: .74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: .22rem .65rem;
+    border-radius: 999px;
+  }
+  .tb-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .5rem 0;
+  }
+  .tb-label {
+    font-size: .88rem;
+    color: #166534;
+    font-weight: 600;
+  }
+  .tb-value {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font-weight: 700;
+    color: #052e16;
+  }
+  .big-number {
+    font-size: 1.22rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .copy-btn {
+    background: #fff;
+    border: 1px solid #86efac;
+    color: #15803d;
+    border-radius: 6px;
+    padding: .22rem .55rem;
+    font-size: .76rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .copy-btn:hover { background: #dcfce7; }
+  .telebirr-box code {
+    background: #fff;
+    border: 1px solid #bbf7d0;
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    font-size: .9rem;
+    font-weight: 700;
+    color: #14532d;
+  }
+
+  /* ---- Instant Download Ready Panel ---- */
+  .download-ready-box {
+    background: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .check-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #10b981;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: .75rem;
+  }
+  .direct-link-box {
+    margin-top: 1rem;
+    padding: .65rem .85rem;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: .82rem;
+    word-break: break-all;
+    color: var(--text-muted);
+  }
+
+  /* ---- Admin ---- */
+  .admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .9rem 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .admin-header strong { color: var(--primary); }
+  .tabs {
+    display: flex;
+    gap: .35rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.25rem;
+  }
+  .tab {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    padding: .65rem 1.15rem;
+    font-size: .94rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+  }
+  .tab.active {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--primary);
+    margin-bottom: -1px;
+  }
+  .tab-panel { padding-top: .25rem; }
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .9rem;
+  }
+  .data-table th, .data-table td {
+    padding: .75rem .9rem;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+  }
+  .data-table th {
+    background: #f8fafc;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td.actions-cell { white-space: nowrap; }
+  .badge {
+    display: inline-block;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    font-size: .73rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .badge-pending   { background: #fef3c7; color: #92400e; }
+  .badge-submitted { background: #e0f2fe; color: #075985; }
+  .badge-paid      { background: #dcfce7; color: #166534; }
+  .badge-failed    { background: #fee2e2; color: #991b1b; }
+
+  @media (max-width: 560px) {
+    .site-header { padding: 1.75rem 1rem; }
+    .site-header h1 { font-size: 1.55rem; }
+    main { margin: 1.4rem auto 2.5rem; }
+    .stepper { font-size: .76rem; padding: .7rem .85rem; }
+    .tb-row { flex-direction: column; align-items: flex-start; gap: .25rem; }
+  }
 </style>
 </head>
 <body>
 <header class="site-header">
-  <h1>HealthEd Materials</h1>
-  <p>Educational resources for health science instructors and health care workers.</p>
+  <div class="site-header-inner">
+    <div class="brand-badge">Digital Health Library</div>
+    <h1><a href="?page=catalog">HealthEd Materials</a></h1>
+    <p>Evidence-based educational resources for health science instructors and healthcare workers.</p>
+  </div>
 </header>
 
-<main>
+<main id="main-container">
   <div id="error-box" class="error-box" role="alert" hidden></div>
 
+  <!-- CATALOG -->
   <section data-page="catalog" hidden>
     <div id="catalog-list" class="catalog"></div>
   </section>
 
-  <section data-page="purchase" hidden class="narrow">
+  <!-- PURCHASE -->
+  <section data-page="purchase" hidden>
+    <div class="stepper">
+      <div class="step-item done"><span class="step-num">✓</span> Select Material</div>
+      <div class="step-item active"><span class="step-num">2</span> Your Details</div>
+      <div class="step-item"><span class="step-num">3</span> Pay &amp; Download</div>
+    </div>
+
     <div id="purchase-summary" class="card"></div>
     <form id="purchase-form" class="card" hidden>
-      <label>Full name<input type="text" id="field-name" required autocomplete="name"></label>
-      <label>Email address<input type="email" id="field-email" required autocomplete="email" placeholder="Required for card payments"></label>
-      <label>Phone number (for payment)<input type="tel" id="field-phone" required autocomplete="tel" placeholder="+2519XXXXXXXX"></label>
+      <label>Full name
+        <input type="text" id="field-name" required autocomplete="name">
+      </label>
+      <label>Phone number
+        <input type="tel" id="field-phone" required autocomplete="tel" placeholder="+2519XXXXXXXX">
+      </label>
+      <label>Email address <span class="label-hint">(required for card payments, optional for Telebirr)</span>
+        <input type="email" id="field-email" autocomplete="email">
+      </label>
       <div class="actions">
-        <button type="button" class="btn btn-primary" id="btn-telebirr">Pay with Telebirr</button>
-        <button type="button" class="btn btn-secondary" id="btn-card">Pay by card</button>
+        <button type="button" class="btn btn-primary" id="btn-telebirr">Continue with Telebirr</button>
+        <button type="button" class="btn btn-secondary" id="btn-card">Pay by Card (Chapa)</button>
+        <a class="btn" href="?page=catalog">Back to Catalog</a>
       </div>
     </form>
   </section>
 
-  <section data-page="order" hidden class="narrow">
+  <!-- ORDER & INSTANT TELEBIRR VERIFICATION -->
+  <section data-page="order" hidden>
+    <div class="stepper" id="order-stepper">
+      <div class="step-item done"><span class="step-num">✓</span> Select Material</div>
+      <div class="step-item done"><span class="step-num">✓</span> Order Created</div>
+      <div class="step-item active" id="step-3"><span class="step-num">3</span> Pay &amp; Download</div>
+    </div>
     <div id="order-status" class="card"></div>
   </section>
 
-  <section data-page="download" hidden class="narrow">
+  <!-- DOWNLOAD -->
+  <section data-page="download" hidden>
     <div id="download-status" class="card"></div>
   </section>
 
+  <!-- ADMIN -->
   <section data-page="admin" hidden>
     <div id="admin-login" hidden>
       <div class="card" style="max-width:420px;margin:2rem auto;">
@@ -111,7 +564,7 @@
           </div>
         </form>
         <p class="muted" style="margin-top:1rem;">
-          First time? Open Code.gs, set your password in <code>setupAdminPassword()</code>, run it once, then clear it.
+          First time? Open <code>Code.gs</code>, set your password in <code>setupAdminPassword()</code>, run it once, then clear it.
         </p>
       </div>
     </div>
@@ -141,7 +594,7 @@
           <fieldset>
             <legend>File</legend>
             <p class="muted" style="margin-top:0;">
-              Upload a file up to 10MB, or paste a Drive file ID for larger files. On upload the file is shared as "Anyone with the link can view" automatically.
+              Upload a file up to 10MB, or paste a Google Drive file ID for larger files. Uploaded files are automatically shared for link access.
             </p>
             <label>Upload file<input type="file" id="mat-file"></label>
             <label>Or Drive file ID<input type="text" id="mat-fileid" placeholder="18FqlEmjLhz0OWWcE5FobWdS0VbFGIFUZ"></label>
@@ -181,7 +634,6 @@ async function api(action, payload) {
   if (!json.ok) throw new Error(json.error || 'Unknown backend error');
   return json.data;
 }
-
 async function adminApi(action, payload) {
   const p = Object.assign({}, payload || {}, { adminToken: getAdminToken() });
   try { return await api(action, p); }
@@ -206,18 +658,33 @@ function escapeHtml(str) {
 }
 function showError(msg) {
   const el = document.getElementById('error-box');
-  el.textContent = msg; el.hidden = false;
+  el.textContent = msg;
+  el.hidden = false;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function hideError() {
   const el = document.getElementById('error-box');
-  el.hidden = true; el.textContent = '';
+  el.hidden = true;
+  el.textContent = '';
 }
 function setBusy(btn, busy, busyText) {
   if (!btn) return;
   btn.disabled = busy;
-  if (busy) { btn.dataset.originalText = btn.textContent; btn.textContent = busyText || 'Please wait…'; }
-  else if (btn.dataset.originalText) { btn.textContent = btn.dataset.originalText; }
+  if (busy) {
+    btn.dataset.originalText = btn.textContent;
+    btn.textContent = busyText || 'Please wait…';
+  } else if (btn.dataset.originalText) {
+    btn.textContent = btn.dataset.originalText;
+  }
+}
+function copyText(text, btnEl) {
+  if (!navigator.clipboard) return;
+  navigator.clipboard.writeText(text).then(function () {
+    if (!btnEl) return;
+    const orig = btnEl.textContent;
+    btnEl.textContent = 'Copied!';
+    setTimeout(function () { btnEl.textContent = orig; }, 1600);
+  });
 }
 function readFileAsBase64(file) {
   return new Promise(function (resolve, reject) {
@@ -229,6 +696,11 @@ function readFileAsBase64(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+function buildFullDownloadUrl(token) {
+  const url = new URL(window.location.href);
+  url.search = '?page=download&token=' + encodeURIComponent(token);
+  return url.toString();
 }
 
 function getAdminToken() { return sessionStorage.getItem(ADMIN_TOKEN_KEY) || ''; }
@@ -245,6 +717,9 @@ function clearAdminSession() {
 function route() {
   const params = new URLSearchParams(window.location.search);
   const page   = params.get('page') || 'catalog';
+  const mainEl = document.getElementById('main-container');
+
+  mainEl.classList.toggle('narrow', page === 'purchase' || page === 'order' || page === 'download');
 
   document.querySelectorAll('[data-page]').forEach(function (el) {
     el.hidden = el.getAttribute('data-page') !== page;
@@ -269,16 +744,20 @@ async function renderCatalog() {
   try {
     const items = await api('catalog');
     if (!items || items.length === 0) {
-      list.innerHTML = '<p class="muted">No materials are available right now.</p>';
+      list.innerHTML = '<div class="card"><p class="muted">No materials are available right now.</p></div>';
       return;
     }
     list.innerHTML = items.map(function (item) {
       return '<article class="card">' +
-        '<h2>' + escapeHtml(item.title) + '</h2>' +
-        '<p>' + escapeHtml(item.description) + '</p>' +
-        '<p class="price">' + formatMoney(item.price) + '</p>' +
-        '<a class="btn" href="?page=purchase&id=' + encodeURIComponent(item.id) + '">Buy now</a>' +
-        '</article>';
+        '<div>' +
+          '<h2>' + escapeHtml(item.title) + '</h2>' +
+          '<p class="card-desc">' + escapeHtml(item.description) + '</p>' +
+        '</div>' +
+        '<div class="card-footer">' +
+          '<span class="price-tag">' + formatMoney(item.price) + '</span>' +
+          '<a class="btn btn-primary" href="?page=purchase&id=' + encodeURIComponent(item.id) + '">Get Material</a>' +
+        '</div>' +
+      '</article>';
     }).join('');
   } catch (err) {
     showError('Could not load materials. Please try again.');
@@ -297,9 +776,13 @@ async function renderPurchase(itemId) {
     const item = (items || []).find(function (i) { return i.id === itemId; });
     if (!item) { summary.innerHTML = '<p class="error">Material not found.</p>'; return; }
     summary.innerHTML =
-      '<h2>' + escapeHtml(item.title) + '</h2>' +
-      '<p>' + escapeHtml(item.description) + '</p>' +
-      '<p class="price">' + formatMoney(item.price) + '</p>';
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">' +
+        '<div>' +
+          '<h2 style="margin-bottom:.35rem">' + escapeHtml(item.title) + '</h2>' +
+          '<p class="muted" style="margin:0">' + escapeHtml(item.description) + '</p>' +
+        '</div>' +
+        '<span class="price-tag">' + formatMoney(item.price) + '</span>' +
+      '</div>';
     form.dataset.itemId = item.id;
     form.hidden = false;
   } catch (err) {
@@ -315,24 +798,27 @@ async function startPurchase(method) {
   const email  = document.getElementById('field-email').value.trim();
   const phone  = document.getElementById('field-phone').value.trim();
   const itemId = form.dataset.itemId;
-  if (!itemId || !name || !email || !phone) {
-    showError('Please fill in all required fields.');
+
+  if (!itemId || !name || !phone) {
+    showError('Please enter your full name and phone number.');
     return;
   }
+  if (method === 'card' && !email) {
+    showError('Please enter your email address to pay by card.');
+    return;
+  }
+
   const btn = document.getElementById(method === 'telebirr' ? 'btn-telebirr' : 'btn-card');
-  setBusy(btn, true, 'Creating your order…');
+  setBusy(btn, true, 'Creating order…');
   try {
     const order = await api('createOrder', {
       itemId: itemId, customerName: name, customerEmail: email,
       customerPhone: phone, paymentMethod: method
     });
-
-    // Manual Telebirr → go to order page which renders the payment UI
     if (method === 'telebirr' && order.telebirr) {
       window.location.href = '?page=order&id=' + encodeURIComponent(order.orderId);
       return;
     }
-    // Card → redirect to Chapa
     if (order.redirectUrl) {
       window.location.href = order.redirectUrl;
       return;
@@ -347,12 +833,33 @@ document.getElementById('btn-telebirr').addEventListener('click', function () { 
 document.getElementById('btn-card').addEventListener('click',    function () { startPurchase('card'); });
 
 /* ---------------- Public: order page ---------------- */
+function renderDownloadUnlockedHtml(orderTitle, orderId, token, messageText) {
+  const fullUrl = buildFullDownloadUrl(token);
+  const relUrl  = '?page=download&token=' + encodeURIComponent(token);
+  return (
+    '<div class="download-ready-box">' +
+      '<div class="check-circle">✓</div>' +
+      '<h2 style="margin:0 0 .35rem;color:#064e3b">' + escapeHtml(messageText || 'Payment Confirmed') + '</h2>' +
+      (orderTitle ? '<p style="margin:.25rem 0;font-weight:600">' + escapeHtml(orderTitle) + '</p>' : '') +
+      '<p class="muted" style="margin:0 0 1.25rem">Order reference: ' + escapeHtml(orderId) + '</p>' +
+      '<a class="btn btn-primary" style="width:100%;max-width:320px" href="' + relUrl + '">Download Material Now</a>' +
+      '<div class="direct-link-box">' +
+        '<strong>Direct download link:</strong><br>' +
+        '<a href="' + relUrl + '">' + escapeHtml(fullUrl) + '</a>' +
+      '</div>' +
+      '<div style="margin-top:1.1rem">' +
+        '<a class="btn btn-small" href="?page=catalog">Browse More Materials</a>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
 function renderOrder(orderId) {
   if (!orderId) { showError('No order ID provided.'); return; }
   clearInterval(window.__pollTimer);
 
   const box = document.getElementById('order-status');
-  box.innerHTML = '<p class="muted">Checking your order…</p>';
+  box.innerHTML = '<p class="muted">Loading order details…</p>';
 
   const check = async function () {
     try {
@@ -361,37 +868,50 @@ function renderOrder(orderId) {
       /* ---- PAID ---- */
       if (order.status === 'PAID') {
         clearInterval(window.__pollTimer);
+        const step3 = document.getElementById('step-3');
+        if (step3) {
+          step3.classList.remove('active');
+          step3.classList.add('done');
+          step3.querySelector('.step-num').textContent = '✓';
+        }
+
+        if (order.downloadError) {
+          box.innerHTML =
+            '<p class="error">' + escapeHtml(order.downloadError) + '</p>' +
+            '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
+            '<a class="btn" href="?page=catalog">Back to materials</a>';
+          return;
+        }
         if (!order.downloadToken) {
           box.innerHTML =
             '<p class="success">✓ Payment confirmed</p>' +
-            '<p class="error">Download token unavailable. Please contact support with reference ' +
+            '<p class="error">Download link unavailable. Please contact support with reference ' +
             escapeHtml(orderId) + '.</p>';
           return;
         }
-        box.innerHTML =
-          '<p class="success">✓ Payment confirmed</p>' +
-          '<p class="muted">Item: ' + escapeHtml(order.itemTitle) + '</p>' +
-          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
-          '<a class="btn btn-primary" href="?page=download&token=' +
-            encodeURIComponent(order.downloadToken) + '">Download your material</a>';
+        box.innerHTML = renderDownloadUnlockedHtml(
+          order.itemTitle,
+          orderId,
+          order.downloadToken,
+          'Payment Confirmed — Download Ready'
+        );
         return;
       }
 
-      /* ---- SUBMITTED (admin will confirm) ---- */
+      /* ---- SUBMITTED (manual review mode) ---- */
       if (order.status === 'SUBMITTED') {
         box.innerHTML =
           '<p class="success">✓ Transaction ID received</p>' +
-          '<p>An admin will verify your Telebirr payment. This page updates automatically.</p>' +
-          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
-          '<p class="muted">If it takes too long, contact support with your order reference.</p>';
-        return; // keep polling — admin may confirm soon
+          '<p>An admin is verifying your Telebirr payment. This page updates automatically.</p>' +
+          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>';
+        return;
       }
 
-      /* ---- PENDING Telebirr → show payment instructions ---- */
+      /* ---- PENDING Telebirr → individual account transfer UI ---- */
       if (order.status === 'PENDING' && order.paymentMethod === 'telebirr' && order.telebirr) {
-        clearInterval(window.__pollTimer);           // wait for user action
+        clearInterval(window.__pollTimer);
         box.innerHTML = renderTelebirrUI(order);
-        bindTelebirrSubmit(orderId);
+        bindTelebirrSubmit(orderId, order.itemTitle);
         return;
       }
 
@@ -405,7 +925,7 @@ function renderOrder(orderId) {
         return;
       }
 
-      /* ---- PENDING card (waiting on Chapa) ---- */
+      /* ---- PENDING card ---- */
       box.innerHTML =
         '<p>Waiting for card payment confirmation…</p>' +
         '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>';
@@ -423,28 +943,52 @@ function renderOrder(orderId) {
 function renderTelebirrUI(order) {
   const t = order.telebirr;
   return (
-    '<h2 style="margin-top:0">Pay with Telebirr</h2>' +
+    '<h2 style="margin-top:0">Complete Telebirr Payment</h2>' +
     '<div class="telebirr-box">' +
-      '<p><strong>Amount:</strong> ' + formatMoney(t.amount) + '</p>' +
-      '<p><strong>Send to:</strong> <span class="big-number">' + escapeHtml(t.number) + '</span></p>' +
-      '<p><strong>Account name:</strong> ' + escapeHtml(t.accountName) + '</p>' +
-      '<p><strong>Reference:</strong> <code>' + escapeHtml(t.reference) + '</code></p>' +
+      '<div class="telebirr-header">' +
+        '<span class="telebirr-tag">Telebirr Transfer</span>' +
+        '<span class="price-tag">' + formatMoney(t.amount) + '</span>' +
+      '</div>' +
+      '<div class="tb-row">' +
+        '<span class="tb-label">Send to Number</span>' +
+        '<span class="tb-value">' +
+          '<span class="big-number">' + escapeHtml(t.number) + '</span>' +
+          '<button type="button" class="copy-btn" onclick="copyText(\'' + escapeHtml(t.number) + '\', this)">Copy</button>' +
+        '</span>' +
+      '</div>' +
+      '<div class="tb-row">' +
+        '<span class="tb-label">Account Name</span>' +
+        '<span class="tb-value">' + escapeHtml(t.accountName) + '</span>' +
+      '</div>' +
+      '<div class="tb-row">' +
+        '<span class="tb-label">Payment Note / Reference</span>' +
+        '<span class="tb-value">' +
+          '<code>' + escapeHtml(t.reference) + '</code>' +
+          '<button type="button" class="copy-btn" onclick="copyText(\'' + escapeHtml(t.reference) + '\', this)">Copy</button>' +
+        '</span>' +
+      '</div>' +
     '</div>' +
-    '<p>Open your Telebirr app, send the exact amount to the number above, and put the ' +
-      'reference code in the note. Then copy the transaction ID from your Telebirr receipt ' +
-      'and paste it below.</p>' +
-    '<label>Telebirr transaction ID' +
-      '<input type="text" id="tx-id-input" placeholder="e.g. FT1234567890" autocomplete="off">' +
-    '</label>' +
-    '<div class="actions row">' +
-      '<button type="button" class="btn btn-primary" id="tx-submit-btn">I have paid — verify</button>' +
-      '<a class="btn" href="?page=catalog">Cancel</a>' +
+
+    '<div id="tb-pending-box">' +
+      '<p class="muted" style="margin-top:0">' +
+        '1. Send <strong>' + formatMoney(t.amount) + '</strong> via Telebirr to <strong>' + escapeHtml(t.number) + '</strong>.<br>' +
+        '2. Check your Telebirr confirmation SMS and enter the unique transaction ID below to generate your download link.' +
+      '</p>' +
+      '<label>Telebirr SMS Transaction ID' +
+        '<input type="text" id="tx-id-input" autocomplete="off" autocapitalize="characters" spellcheck="false">' +
+      '</label>' +
+      '<div class="actions row">' +
+        '<button type="button" class="btn btn-primary" id="tx-submit-btn">Verify &amp; Generate Download Link</button>' +
+        '<a class="btn" href="?page=catalog">Cancel</a>' +
+      '</div>' +
+      '<div id="tx-status" style="margin-top:1rem"></div>' +
     '</div>' +
-    '<div id="tx-status" style="margin-top:1rem"></div>'
+
+    '<div id="tb-paid-box" hidden></div>'
   );
 }
 
-function bindTelebirrSubmit(orderId) {
+function bindTelebirrSubmit(orderId, itemTitle) {
   const btn    = document.getElementById('tx-submit-btn');
   const input  = document.getElementById('tx-id-input');
   const status = document.getElementById('tx-status');
@@ -452,14 +996,43 @@ function bindTelebirrSubmit(orderId) {
 
   btn.onclick = async function () {
     const txId = (input.value || '').trim();
-    if (!txId) { status.innerHTML = '<p class="error">Please enter the transaction ID.</p>'; return; }
-    setBusy(btn, true, 'Submitting…');
+    if (!txId) {
+      status.innerHTML = '<p class="error">Please enter the transaction ID from your Telebirr SMS.</p>';
+      return;
+    }
+    setBusy(btn, true, 'Verifying transaction…');
     status.innerHTML = '';
     try {
       const res = await api('submitTelebirrPayment', { orderId: orderId, transactionId: txId });
-      status.innerHTML = '<p class="success">' + escapeHtml(res.message) + '</p>';
-      // Re-render to pick up the new state (SUBMITTED or PAID)
-      setTimeout(function () { renderOrder(orderId); }, 700);
+
+      if (res.status === 'PAID' && res.downloadToken) {
+        const step3 = document.getElementById('step-3');
+        if (step3) {
+          step3.classList.remove('active');
+          step3.classList.add('done');
+          step3.querySelector('.step-num').textContent = '✓';
+        }
+        const pending = document.getElementById('tb-pending-box');
+        if (pending) pending.hidden = true;
+        const paidBox = document.getElementById('tb-paid-box');
+        paidBox.hidden = false;
+        paidBox.innerHTML = renderDownloadUnlockedHtml(
+          itemTitle,
+          orderId,
+          res.downloadToken,
+          res.message || 'Payment Verified — Download Ready'
+        );
+        return;
+      }
+
+      if (res.status === 'SUBMITTED') {
+        status.innerHTML = '<p class="success">' + escapeHtml(res.message) + '</p>';
+        setTimeout(function () { renderOrder(orderId); }, 700);
+        return;
+      }
+
+      status.innerHTML = '<p class="error">Unexpected response. Please retry.</p>';
+      setBusy(btn, false);
     } catch (err) {
       status.innerHTML = '<p class="error">' + escapeHtml(err.message) + '</p>';
       setBusy(btn, false);
@@ -475,13 +1048,19 @@ async function renderDownload(token) {
   try {
     const result = await api('getDownload', { token: token });
     if (!result.url) throw new Error('No download URL returned.');
+    box.innerHTML =
+      '<p class="success">✓ Your download has started.</p>' +
+      '<p class="muted">If your browser did not start automatically, <a href="' +
+        escapeHtml(result.url) + '">click here to download</a>.</p>' +
+      '<a class="btn" href="?page=catalog">Back to materials</a>';
     window.location.href = result.url;
   } catch (err) {
     const msg = String(err.message || '').toLowerCase();
     let friendly = 'Download failed. Please contact support.';
-    if (msg.indexOf('expired')          !== -1) friendly = 'This download link has expired.';
-    else if (msg.indexOf('already')     !== -1) friendly = 'This download link has already been used.';
-    else if (msg.indexOf('recognis')    !== -1) friendly = 'This download link is not recognised.';
+    if (msg.indexOf('expired')           !== -1) friendly = 'This download link has expired.';
+    else if (msg.indexOf('already')      !== -1) friendly = 'This download link has already been used.';
+    else if (msg.indexOf('revoked')      !== -1) friendly = 'This download has been revoked. Please contact support.';
+    else if (msg.indexOf('recognis')     !== -1) friendly = 'This download link is not recognised.';
     else if (msg.indexOf('not eligible') !== -1) friendly = 'This order is not eligible for download.';
     box.innerHTML =
       '<p class="error">' + escapeHtml(friendly) + '</p>' +
@@ -586,84 +1165,105 @@ async function loadAdminMaterials() {
     const items = await adminApi('adminListMaterials');
     adminMaterialsCache = items || [];
     if (items.length === 0) {
-      container.innerHTML = '<p class="muted">No materials yet. Click "New / Edit Material" to add one.</p>';
+      container.innerHTML = '<div class="card"><p class="muted">No materials yet. Click "New / Edit Material" to add one.</p></div>';
       return;
     }
     const rows = items.map(function (m) {
+      const shortFile = m.fileId ? (String(m.fileId).slice(0, 18) + (String(m.fileId).length > 18 ? '…' : '')) : 'None';
       return '<tr>' +
-        '<td>' + escapeHtml(m.title) + '<br><span class="muted">' + escapeHtml(m.id) + '</span></td>' +
+        '<td><strong>' + escapeHtml(m.title) + '</strong><br><span class="muted">' + escapeHtml(m.id) + '</span></td>' +
         '<td>' + formatMoney(m.price) + '</td>' +
-        '<td><span class="muted">' + escapeHtml(String(m.fileId || '').slice(0, 16) + (m.fileId ? '…' : '')) + '</span></td>' +
+        '<td><span class="muted">' + escapeHtml(shortFile) + '</span></td>' +
         '<td class="actions-cell">' +
-          '<button class="btn btn-small" data-action="edit"   data-id="' + escapeHtml(m.id) + '">Edit</button> ' +
-          '<button class="btn btn-small btn-danger" data-action="delete" data-id="' + escapeHtml(m.id) + '">Delete</button>' +
+          '<button type="button" class="btn btn-small" onclick="editMaterial(\'' + escapeHtml(m.id) + '\')">Edit</button> ' +
+          '<button type="button" class="btn btn-small btn-danger" onclick="deleteMaterial(\'' + escapeHtml(m.id) + '\')">Delete</button>' +
         '</td>' +
       '</tr>';
     }).join('');
 
     container.innerHTML =
-      '<table class="data-table"><thead><tr>' +
-      '<th>Title</th><th>Price</th><th>File ID</th><th>Actions</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table>';
-
-    container.querySelectorAll('button[data-action]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const id = btn.dataset.id;
-        if (btn.dataset.action === 'edit') editMaterial(id);
-        else if (btn.dataset.action === 'delete') deleteMaterial(id);
-      });
-    });
+      '<div class="table-wrap"><table class="data-table">' +
+        '<thead><tr><th>Material</th><th>Price</th><th>Drive File</th><th>Actions</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>';
   } catch (err) {
-    showError(err.message || 'Could not load materials.');
-    container.innerHTML = '';
+    container.innerHTML = '<p class="error">' + escapeHtml(err.message) + '</p>';
   }
 }
 
-function updateMaterialFormMode() {
-  const editing = !!adminEditingId;
-  document.getElementById('mat-form-title').textContent = editing ? 'Edit Material' : 'New Material';
-  document.getElementById('mat-submit').textContent = editing ? 'Save Changes' : 'Create Material';
-  document.getElementById('mat-cancel').hidden = !editing;
+function editMaterial(id) {
+  const item = adminMaterialsCache.find(function (m) { return m.id === id; });
+  if (!item) return;
+  adminEditingId = item.id;
+  document.getElementById('mat-id').value = item.id;
+  document.getElementById('mat-title').value = item.title;
+  document.getElementById('mat-description').value = item.description;
+  document.getElementById('mat-price').value = item.price;
+  document.getElementById('mat-fileid').value = item.fileId || '';
+  document.getElementById('mat-file').value = '';
+  document.getElementById('mat-current-file').textContent =
+    item.fileId ? ('Current Drive File ID: ' + item.fileId) : '';
+  activateAdminTab('form');
 }
 
 function resetMaterialForm() {
   adminEditingId = '';
+  document.getElementById('material-form').reset();
   document.getElementById('mat-id').value = '';
-  document.getElementById('mat-title').value = '';
-  document.getElementById('mat-description').value = '';
-  document.getElementById('mat-price').value = '';
-  document.getElementById('mat-file').value = '';
-  document.getElementById('mat-fileid').value = '';
   document.getElementById('mat-current-file').textContent = '';
   updateMaterialFormMode();
 }
 
-function editMaterial(id) {
-  const m = adminMaterialsCache.find(function (x) { return x.id === id; });
-  if (!m) { showError('Material not found in cache. Refresh and try again.'); return; }
+function updateMaterialFormMode() {
+  const isEdit = Boolean(adminEditingId);
+  document.getElementById('mat-form-title').textContent = isEdit ? 'Edit Material' : 'New Material';
+  document.getElementById('mat-submit').textContent = isEdit ? 'Save Changes' : 'Create Material';
+  document.getElementById('mat-cancel').hidden = !isEdit;
+}
 
-  adminEditingId = id;
-  document.getElementById('mat-id').value = id;
-  document.getElementById('mat-title').value = m.title;
-  document.getElementById('mat-description').value = m.description;
-  document.getElementById('mat-price').value = m.price;
-  document.getElementById('mat-file').value = '';
-  document.getElementById('mat-fileid').value = m.fileId || '';
-  document.getElementById('mat-current-file').textContent =
-    m.fileId ? 'Current Drive file ID: ' + m.fileId : '';
+async function handleMaterialSubmit(e) {
+  e.preventDefault();
+  hideError();
+  const btn = document.getElementById('mat-submit');
+  const id = document.getElementById('mat-id').value.trim();
+  const title = document.getElementById('mat-title').value.trim();
+  const description = document.getElementById('mat-description').value.trim();
+  const price = Number(document.getElementById('mat-price').value);
+  const fileId = document.getElementById('mat-fileid').value.trim();
+  const fileInput = document.getElementById('mat-file');
+  const file = fileInput.files && fileInput.files[0];
 
-  updateMaterialFormMode();
-  activateAdminTab('form');
+  if (file && file.size > MAX_UPLOAD_BYTES) {
+    showError('File exceeds 10MB limit. Please upload to Google Drive and paste the File ID instead.');
+    return;
+  }
+
+  setBusy(btn, true, id ? 'Saving…' : 'Creating…');
+  try {
+    const payload = { id: id, title: title, description: description, price: price, fileId: fileId };
+    if (file) {
+      const encoded = await readFileAsBase64(file);
+      payload.fileBase64 = encoded.base64;
+      payload.fileName = encoded.name;
+      payload.mimeType = encoded.mimeType;
+    }
+    if (id) {
+      await adminApi('adminUpdateMaterial', payload);
+    } else {
+      await adminApi('adminCreateMaterial', payload);
+    }
+    resetMaterialForm();
+    activateAdminTab('materials');
+  } catch (err) {
+    showError(err.message || 'Could not save material.');
+  } finally {
+    setBusy(btn, false);
+  }
 }
 
 async function deleteMaterial(id) {
-  const m = adminMaterialsCache.find(function (x) { return x.id === id; });
-  if (!m) { showError('Material not found in cache.'); return; }
-  const ok = confirm(
-    'Delete "' + m.title + '"?\n\n' +
-    'This removes it from the catalog. Existing orders for this item will no longer be downloadable. This cannot be undone.'
-  );
-  if (!ok) return;
+  if (!confirm('Delete this material from the catalog?')) return;
+  hideError();
   try {
     await adminApi('adminDeleteMaterial', { id: id });
     await loadAdminMaterials();
@@ -672,134 +1272,72 @@ async function deleteMaterial(id) {
   }
 }
 
-async function handleMaterialSubmit(e) {
-  e.preventDefault();
-  hideError();
-  const btn = document.getElementById('mat-submit');
-  setBusy(btn, true, 'Saving…');
-
-  try {
-    const editing = !!adminEditingId;
-    const payload = {
-      title:       document.getElementById('mat-title').value.trim(),
-      description: document.getElementById('mat-description').value.trim(),
-      price:       Number(document.getElementById('mat-price').value)
-    };
-
-    const fileInput    = document.getElementById('mat-file');
-    const manualFileId = document.getElementById('mat-fileid').value.trim();
-
-    if (fileInput.files && fileInput.files[0]) {
-      const file = fileInput.files[0];
-      if (file.size > MAX_UPLOAD_BYTES) {
-        throw new Error('File is too large. Max ' + (MAX_UPLOAD_BYTES / 1024 / 1024) + 'MB.');
-      }
-      setBusy(btn, true, 'Uploading file…');
-      const data = await readFileAsBase64(file);
-      payload.fileBase64 = data.base64;
-      payload.fileName   = data.name;
-      payload.mimeType   = data.mimeType;
-    } else if (manualFileId) {
-      payload.fileId = manualFileId;
-    } else if (!editing) {
-      throw new Error('Please upload a file or provide a Drive file ID.');
-    }
-
-    if (editing) {
-      payload.id = adminEditingId;
-      await adminApi('adminUpdateMaterial', payload);
-    } else {
-      await adminApi('adminCreateMaterial', payload);
-    }
-
-    resetMaterialForm();
-    activateAdminTab('materials');
-  } catch (err) {
-    showError(err.message || 'Save failed.');
-  } finally {
-    setBusy(btn, false);
-    updateMaterialFormMode();
-  }
-}
-
-/* ---- Admin: orders (with Telebirr confirm/reject) ---- */
+/* ---- Admin: orders ---- */
 async function loadAdminOrders() {
   const container = document.getElementById('orders-list');
   container.innerHTML = '<p class="muted">Loading orders…</p>';
   try {
     const orders = await adminApi('adminListOrders');
     if (!orders || orders.length === 0) {
-      container.innerHTML = '<p class="muted">No orders yet.</p>';
+      container.innerHTML = '<div class="card"><p class="muted">No orders recorded yet.</p></div>';
       return;
     }
     const rows = orders.map(function (o) {
-      const cls = o.status === 'PAID'   ? 'paid' :
-                  o.status === 'FAILED' || o.status === 'CANCELLED' ? 'failed' : 'pending';
+      const badgeClass =
+        o.status === 'PAID' ? 'badge-paid' :
+        o.status === 'SUBMITTED' ? 'badge-submitted' :
+        o.status === 'FAILED' || o.status === 'CANCELLED' ? 'badge-failed' : 'badge-pending';
 
-      let actions = '—';
-      if (o.paymentMethod === 'telebirr' &&
-          (o.status === 'SUBMITTED' || o.status === 'PENDING')) {
-        actions =
-          '<button class="btn btn-small btn-primary" data-confirm="' + escapeHtml(o.orderId) + '">Confirm</button> ' +
-          '<button class="btn btn-small btn-danger"  data-reject="'  + escapeHtml(o.orderId) + '">Reject</button>';
+      let actionBtns = '';
+      if (o.status === 'PENDING' || o.status === 'SUBMITTED') {
+        actionBtns =
+          '<button type="button" class="btn btn-small btn-primary" onclick="adminOrderAction(\'confirm\', \'' + escapeHtml(o.orderId) + '\')">Confirm</button> ' +
+          '<button type="button" class="btn btn-small btn-danger" onclick="adminOrderAction(\'reject\', \'' + escapeHtml(o.orderId) + '\')">Reject</button>';
+      } else if (o.status === 'PAID') {
+        actionBtns =
+          '<button type="button" class="btn btn-small btn-danger" onclick="adminOrderAction(\'revoke\', \'' + escapeHtml(o.orderId) + '\')">Revoke</button>';
       }
 
       return '<tr>' +
-        '<td>' + escapeHtml(o.orderId) + '</td>' +
-        '<td>' + escapeHtml(o.itemTitle) + '</td>' +
-        '<td>' + formatMoney(o.amount) + '</td>' +
-        '<td>' + escapeHtml(o.customerName) +
-          '<br><span class="muted">' + escapeHtml(o.phone) + '</span></td>' +
-        '<td>' + escapeHtml(o.paymentMethod) +
-          '<br><span class="muted">TxID: ' + escapeHtml(o.gatewayRef || '—') + '</span></td>' +
-        '<td><span class="badge badge-' + cls + '">' + escapeHtml(o.status) + '</span>' +
-          (o.fulfillment ? '<br><span class="muted">' + escapeHtml(o.fulfillment) + '</span>' : '') +
-        '</td>' +
-        '<td>' + escapeHtml(o.createdAt) + '</td>' +
-        '<td class="actions-cell">' + actions + '</td>' +
+        '<td><strong>' + escapeHtml(o.orderId) + '</strong><br><span class="muted">' + escapeHtml(o.createdAt) + '</span></td>' +
+        '<td>' + escapeHtml(o.customerName) + '<br><span class="muted">' + escapeHtml(o.phone) + '</span></td>' +
+        '<td>' + escapeHtml(o.itemTitle) + '<br><span class="price">' + formatMoney(o.amount) + '</span></td>' +
+        '<td>' + escapeHtml(o.paymentMethod.toUpperCase()) +
+          (o.gatewayRef ? '<br><code>' + escapeHtml(o.gatewayRef) + '</code>' : '') + '</td>' +
+        '<td><span class="badge ' + badgeClass + '">' + escapeHtml(o.status) + '</span>' +
+          (o.fulfillment ? '<br><span class="muted">' + escapeHtml(o.fulfillment) + '</span>' : '') + '</td>' +
+        '<td class="actions-cell">' + actionBtns + '</td>' +
       '</tr>';
     }).join('');
 
     container.innerHTML =
-      '<table class="data-table"><thead><tr>' +
-      '<th>Order</th><th>Item</th><th>Amount</th><th>Customer</th>' +
-      '<th>Method / TxID</th><th>Status</th><th>Date</th><th>Actions</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table>';
-
-    /* Confirm buttons */
-    container.querySelectorAll('button[data-confirm]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        const id = btn.dataset.confirm;
-        if (!confirm('Confirm this payment? The customer will unlock their download.\n\nOrder: ' + id)) return;
-        btn.disabled = true;
-        try {
-          await adminApi('adminConfirmOrder', { orderId: id });
-          await loadAdminOrders();
-        } catch (err) {
-          showError(err.message || 'Confirm failed.');
-          btn.disabled = false;
-        }
-      });
-    });
-
-    /* Reject buttons */
-    container.querySelectorAll('button[data-reject]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        const id = btn.dataset.reject;
-        const reason = prompt('Reason for rejecting this payment? (optional)') || 'Invalid transaction';
-        btn.disabled = true;
-        try {
-          await adminApi('adminRejectOrder', { orderId: id, reason: reason });
-          await loadAdminOrders();
-        } catch (err) {
-          showError(err.message || 'Reject failed.');
-          btn.disabled = false;
-        }
-      });
-    });
+      '<div class="table-wrap"><table class="data-table">' +
+        '<thead><tr><th>Order</th><th>Customer</th><th>Material</th><th>Payment / Tx ID</th><th>Status</th><th>Actions</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>';
   } catch (err) {
-    showError(err.message || 'Could not load orders.');
-    container.innerHTML = '';
+    container.innerHTML = '<p class="error">' + escapeHtml(err.message) + '</p>';
+  }
+}
+
+async function adminOrderAction(type, orderId) {
+  hideError();
+  try {
+    if (type === 'confirm') {
+      if (!confirm('Confirm payment for order ' + orderId + '?')) return;
+      await adminApi('adminConfirmOrder', { orderId: orderId });
+    } else if (type === 'reject') {
+      const reason = prompt('Reason for rejecting order ' + orderId + ':');
+      if (reason === null) return;
+      await adminApi('adminRejectOrder', { orderId: orderId, reason: reason });
+    } else if (type === 'revoke') {
+      const reason = prompt('Reason for revoking paid order ' + orderId + ' (this disables the download link):');
+      if (reason === null) return;
+      await adminApi('adminRevokeOrder', { orderId: orderId, reason: reason });
+    }
+    await loadAdminOrders();
+  } catch (err) {
+    showError(err.message || 'Action failed.');
   }
 }
 </script>
