@@ -8,7 +8,7 @@
   HealthEd Materials — Frontend SPA (public + admin)
   SETUP:
    1. Set API_BASE_URL below to your deployed Apps Script /exec URL.
-   2. Upload this file to GitHub Pages.
+   2. Upload to GitHub Pages.
    3. Public:  /  or ?page=catalog
       Admin:   /?page=admin
   ROUTES:
@@ -58,6 +58,10 @@
   .badge-pending{background:#fff8c5;color:#9a6700}
   .badge-paid{background:#dafbe1;color:#1a7f37}
   .badge-failed{background:#ffebe9;color:#cf222e}
+  .telebirr-box{background:#f0f8ff;border:1px solid #0969da;border-radius:10px;padding:1rem;margin-bottom:1rem}
+  .telebirr-box p{margin:.35rem 0}
+  .telebirr-box .big-number{font-size:1.3rem;font-weight:700;letter-spacing:.02em}
+  .telebirr-box code{background:#fff;padding:.15rem .45rem;border-radius:4px;font-size:.95rem}
   @media(max-width:480px){.site-header{padding:1.5rem 1rem}main{margin:1.25rem auto}.data-table{font-size:.85rem}.data-table th,.data-table td{padding:.45rem .5rem}}
 </style>
 </head>
@@ -164,8 +168,9 @@ const ADMIN_TOKEN_KEY  = 'he_admin_token';
 const ADMIN_USER_KEY   = 'he_admin_user';
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
+/* ---------------- API ---------------- */
 async function api(action, payload) {
-  if (!API_BASE_URL) throw new Error('API_BASE_URL is not configured in Index.html.');
+  if (!API_BASE_URL) throw new Error('API_BASE_URL is not configured.');
   const res = await fetch(API_BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -190,6 +195,7 @@ async function adminApi(action, payload) {
   }
 }
 
+/* ---------------- Helpers ---------------- */
 function formatMoney(amount) {
   return new Intl.NumberFormat(CURRENCY_LOCALE, { style: 'currency', currency: CURRENCY }).format(amount);
 }
@@ -210,12 +216,8 @@ function hideError() {
 function setBusy(btn, busy, busyText) {
   if (!btn) return;
   btn.disabled = busy;
-  if (busy) {
-    btn.dataset.originalText = btn.textContent;
-    btn.textContent = busyText || 'Please wait…';
-  } else if (btn.dataset.originalText) {
-    btn.textContent = btn.dataset.originalText;
-  }
+  if (busy) { btn.dataset.originalText = btn.textContent; btn.textContent = busyText || 'Please wait…'; }
+  else if (btn.dataset.originalText) { btn.textContent = btn.dataset.originalText; }
 }
 function readFileAsBase64(file) {
   return new Promise(function (resolve, reject) {
@@ -239,14 +241,14 @@ function clearAdminSession() {
   sessionStorage.removeItem(ADMIN_USER_KEY);
 }
 
+/* ---------------- Routing ---------------- */
 function route() {
   const params = new URLSearchParams(window.location.search);
-  const page = params.get('page') || 'catalog';
+  const page   = params.get('page') || 'catalog';
 
   document.querySelectorAll('[data-page]').forEach(function (el) {
     el.hidden = el.getAttribute('data-page') !== page;
   });
-
   hideError();
   clearInterval(window.__pollTimer);
 
@@ -260,6 +262,7 @@ function route() {
 window.addEventListener('DOMContentLoaded', route);
 window.addEventListener('popstate', route);
 
+/* ---------------- Public: catalog ---------------- */
 async function renderCatalog() {
   const list = document.getElementById('catalog-list');
   list.innerHTML = '<p class="muted">Loading materials…</p>';
@@ -283,6 +286,7 @@ async function renderCatalog() {
   }
 }
 
+/* ---------------- Public: purchase form ---------------- */
 async function renderPurchase(itemId) {
   const summary = document.getElementById('purchase-summary');
   const form    = document.getElementById('purchase-form');
@@ -306,10 +310,10 @@ async function renderPurchase(itemId) {
 
 async function startPurchase(method) {
   hideError();
-  const form = document.getElementById('purchase-form');
-  const name = document.getElementById('field-name').value.trim();
-  const email = document.getElementById('field-email').value.trim();
-  const phone = document.getElementById('field-phone').value.trim();
+  const form   = document.getElementById('purchase-form');
+  const name   = document.getElementById('field-name').value.trim();
+  const email  = document.getElementById('field-email').value.trim();
+  const phone  = document.getElementById('field-phone').value.trim();
   const itemId = form.dataset.itemId;
   if (!itemId || !name || !email || !phone) {
     showError('Please fill in all required fields.');
@@ -322,54 +326,148 @@ async function startPurchase(method) {
       itemId: itemId, customerName: name, customerEmail: email,
       customerPhone: phone, paymentMethod: method
     });
-    if (!order.redirectUrl) throw new Error('No payment redirect URL returned.');
-    window.location.href = order.redirectUrl;
+
+    // Manual Telebirr → go to order page which renders the payment UI
+    if (method === 'telebirr' && order.telebirr) {
+      window.location.href = '?page=order&id=' + encodeURIComponent(order.orderId);
+      return;
+    }
+    // Card → redirect to Chapa
+    if (order.redirectUrl) {
+      window.location.href = order.redirectUrl;
+      return;
+    }
+    throw new Error('No payment route returned by server.');
   } catch (err) {
     showError(err.message || 'Something went wrong. Please try again.');
-    console.error(err);
     setBusy(btn, false);
   }
 }
 document.getElementById('btn-telebirr').addEventListener('click', function () { startPurchase('telebirr'); });
 document.getElementById('btn-card').addEventListener('click',    function () { startPurchase('card'); });
 
+/* ---------------- Public: order page ---------------- */
 function renderOrder(orderId) {
   if (!orderId) { showError('No order ID provided.'); return; }
+  clearInterval(window.__pollTimer);
+
   const box = document.getElementById('order-status');
   box.innerHTML = '<p class="muted">Checking your order…</p>';
+
   const check = async function () {
     try {
       const order = await api('orderStatus', { orderId: orderId });
+
+      /* ---- PAID ---- */
       if (order.status === 'PAID') {
         clearInterval(window.__pollTimer);
+        if (!order.downloadToken) {
+          box.innerHTML =
+            '<p class="success">✓ Payment confirmed</p>' +
+            '<p class="error">Download token unavailable. Please contact support with reference ' +
+            escapeHtml(orderId) + '.</p>';
+          return;
+        }
         box.innerHTML =
-          '<p class="success">Payment confirmed.</p>' +
-          '<p class="muted">Item: ' + escapeHtml(order.itemTitle || '') + '</p>' +
+          '<p class="success">✓ Payment confirmed</p>' +
+          '<p class="muted">Item: ' + escapeHtml(order.itemTitle) + '</p>' +
           '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
           '<a class="btn btn-primary" href="?page=download&token=' +
             encodeURIComponent(order.downloadToken) + '">Download your material</a>';
-      } else if (order.status === 'FAILED' || order.status === 'CANCELLED') {
+        return;
+      }
+
+      /* ---- SUBMITTED (admin will confirm) ---- */
+      if (order.status === 'SUBMITTED') {
+        box.innerHTML =
+          '<p class="success">✓ Transaction ID received</p>' +
+          '<p>An admin will verify your Telebirr payment. This page updates automatically.</p>' +
+          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
+          '<p class="muted">If it takes too long, contact support with your order reference.</p>';
+        return; // keep polling — admin may confirm soon
+      }
+
+      /* ---- PENDING Telebirr → show payment instructions ---- */
+      if (order.status === 'PENDING' && order.paymentMethod === 'telebirr' && order.telebirr) {
+        clearInterval(window.__pollTimer);           // wait for user action
+        box.innerHTML = renderTelebirrUI(order);
+        bindTelebirrSubmit(orderId);
+        return;
+      }
+
+      /* ---- FAILED / CANCELLED ---- */
+      if (order.status === 'FAILED' || order.status === 'CANCELLED') {
         clearInterval(window.__pollTimer);
         box.innerHTML =
           '<p class="error">Payment was not completed.</p>' +
           '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
           '<a class="btn" href="?page=catalog">Back to materials</a>';
-      } else {
-        box.innerHTML =
-          '<p>Waiting for payment confirmation…</p>' +
-          '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>' +
-          '<p class="muted">If you completed payment and this persists for more than a minute, please refresh.</p>';
+        return;
       }
+
+      /* ---- PENDING card (waiting on Chapa) ---- */
+      box.innerHTML =
+        '<p>Waiting for card payment confirmation…</p>' +
+        '<p class="muted">Order reference: ' + escapeHtml(orderId) + '</p>';
     } catch (err) {
       clearInterval(window.__pollTimer);
       showError('Order not found.');
       console.error(err);
     }
   };
+
   check();
   window.__pollTimer = setInterval(check, POLL_INTERVAL_MS);
 }
 
+function renderTelebirrUI(order) {
+  const t = order.telebirr;
+  return (
+    '<h2 style="margin-top:0">Pay with Telebirr</h2>' +
+    '<div class="telebirr-box">' +
+      '<p><strong>Amount:</strong> ' + formatMoney(t.amount) + '</p>' +
+      '<p><strong>Send to:</strong> <span class="big-number">' + escapeHtml(t.number) + '</span></p>' +
+      '<p><strong>Account name:</strong> ' + escapeHtml(t.accountName) + '</p>' +
+      '<p><strong>Reference:</strong> <code>' + escapeHtml(t.reference) + '</code></p>' +
+    '</div>' +
+    '<p>Open your Telebirr app, send the exact amount to the number above, and put the ' +
+      'reference code in the note. Then copy the transaction ID from your Telebirr receipt ' +
+      'and paste it below.</p>' +
+    '<label>Telebirr transaction ID' +
+      '<input type="text" id="tx-id-input" placeholder="e.g. FT1234567890" autocomplete="off">' +
+    '</label>' +
+    '<div class="actions row">' +
+      '<button type="button" class="btn btn-primary" id="tx-submit-btn">I have paid — verify</button>' +
+      '<a class="btn" href="?page=catalog">Cancel</a>' +
+    '</div>' +
+    '<div id="tx-status" style="margin-top:1rem"></div>'
+  );
+}
+
+function bindTelebirrSubmit(orderId) {
+  const btn    = document.getElementById('tx-submit-btn');
+  const input  = document.getElementById('tx-id-input');
+  const status = document.getElementById('tx-status');
+  if (!btn) return;
+
+  btn.onclick = async function () {
+    const txId = (input.value || '').trim();
+    if (!txId) { status.innerHTML = '<p class="error">Please enter the transaction ID.</p>'; return; }
+    setBusy(btn, true, 'Submitting…');
+    status.innerHTML = '';
+    try {
+      const res = await api('submitTelebirrPayment', { orderId: orderId, transactionId: txId });
+      status.innerHTML = '<p class="success">' + escapeHtml(res.message) + '</p>';
+      // Re-render to pick up the new state (SUBMITTED or PAID)
+      setTimeout(function () { renderOrder(orderId); }, 700);
+    } catch (err) {
+      status.innerHTML = '<p class="error">' + escapeHtml(err.message) + '</p>';
+      setBusy(btn, false);
+    }
+  };
+}
+
+/* ---------------- Public: download ---------------- */
 async function renderDownload(token) {
   const box = document.getElementById('download-status');
   box.innerHTML = '<p class="muted">Preparing your download…</p>';
@@ -381,17 +479,18 @@ async function renderDownload(token) {
   } catch (err) {
     const msg = String(err.message || '').toLowerCase();
     let friendly = 'Download failed. Please contact support.';
-    if (msg.indexOf('expired') !== -1) friendly = 'This download link has expired.';
-    else if (msg.indexOf('already been used') !== -1) friendly = 'This download link has already been used.';
-    else if (msg.indexOf('not recognised') !== -1) friendly = 'This download link is not recognised.';
+    if (msg.indexOf('expired')          !== -1) friendly = 'This download link has expired.';
+    else if (msg.indexOf('already')     !== -1) friendly = 'This download link has already been used.';
+    else if (msg.indexOf('recognis')    !== -1) friendly = 'This download link is not recognised.';
     else if (msg.indexOf('not eligible') !== -1) friendly = 'This order is not eligible for download.';
-    box.innerHTML = '<p class="error">' + escapeHtml(friendly) + '</p>' +
-                    '<a class="btn" href="?page=catalog">Back to materials</a>';
+    box.innerHTML =
+      '<p class="error">' + escapeHtml(friendly) + '</p>' +
+      '<a class="btn" href="?page=catalog">Back to materials</a>';
     console.error(err);
   }
 }
 
-/* ---------------- ADMIN ---------------- */
+/* ---------------- Admin ---------------- */
 let adminMaterialsCache = [];
 let adminTabsBound = false;
 let adminEditingId = '';
@@ -402,22 +501,19 @@ async function renderAdmin() {
   const token = getAdminToken();
   bindAdminOnce();
 
-  if (!token) {
-    loginBox.hidden = false;
-    dashBox.hidden = true;
-    return;
-  }
+  if (!token) { loginBox.hidden = false; dashBox.hidden = true; return; }
+
   try {
     const info = await api('adminPing', { adminToken: token });
     loginBox.hidden = true;
-    dashBox.hidden = false;
+    dashBox.hidden  = false;
     document.getElementById('admin-name').textContent =
       info.username || sessionStorage.getItem(ADMIN_USER_KEY) || 'admin';
     activateAdminTab('materials');
   } catch (err) {
     clearAdminSession();
     loginBox.hidden = false;
-    dashBox.hidden = true;
+    dashBox.hidden  = true;
   }
 }
 
@@ -425,10 +521,8 @@ function bindAdminOnce() {
   if (adminTabsBound) return;
   adminTabsBound = true;
 
-  document.getElementById('admin-login-form')
-    .addEventListener('submit', handleAdminLogin);
-  document.getElementById('admin-logout')
-    .addEventListener('click', handleAdminLogout);
+  document.getElementById('admin-login-form').addEventListener('submit', handleAdminLogin);
+  document.getElementById('admin-logout').addEventListener('click', handleAdminLogout);
 
   document.querySelectorAll('#admin-tabs .tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
@@ -438,13 +532,11 @@ function bindAdminOnce() {
     });
   });
 
-  document.getElementById('material-form')
-    .addEventListener('submit', handleMaterialSubmit);
-  document.getElementById('mat-cancel')
-    .addEventListener('click', function () {
-      resetMaterialForm();
-      activateAdminTab('materials');
-    });
+  document.getElementById('material-form').addEventListener('submit', handleMaterialSubmit);
+  document.getElementById('mat-cancel').addEventListener('click', function () {
+    resetMaterialForm();
+    activateAdminTab('materials');
+  });
 }
 
 async function handleAdminLogin(e) {
@@ -486,6 +578,7 @@ function activateAdminTab(name) {
   if (name === 'form')      updateMaterialFormMode();
 }
 
+/* ---- Admin: materials ---- */
 async function loadAdminMaterials() {
   const container = document.getElementById('materials-list');
   container.innerHTML = '<p class="muted">Loading materials…</p>';
@@ -493,7 +586,7 @@ async function loadAdminMaterials() {
     const items = await adminApi('adminListMaterials');
     adminMaterialsCache = items || [];
     if (items.length === 0) {
-      container.innerHTML = '<p class="muted">No materials yet. Click "New Material" to add one.</p>';
+      container.innerHTML = '<p class="muted">No materials yet. Click "New / Edit Material" to add one.</p>';
       return;
     }
     const rows = items.map(function (m) {
@@ -502,7 +595,7 @@ async function loadAdminMaterials() {
         '<td>' + formatMoney(m.price) + '</td>' +
         '<td><span class="muted">' + escapeHtml(String(m.fileId || '').slice(0, 16) + (m.fileId ? '…' : '')) + '</span></td>' +
         '<td class="actions-cell">' +
-          '<button class="btn btn-small" data-action="edit" data-id="' + escapeHtml(m.id) + '">Edit</button> ' +
+          '<button class="btn btn-small" data-action="edit"   data-id="' + escapeHtml(m.id) + '">Edit</button> ' +
           '<button class="btn btn-small btn-danger" data-action="delete" data-id="' + escapeHtml(m.id) + '">Delete</button>' +
         '</td>' +
       '</tr>';
@@ -522,40 +615,6 @@ async function loadAdminMaterials() {
     });
   } catch (err) {
     showError(err.message || 'Could not load materials.');
-    container.innerHTML = '';
-  }
-}
-
-async function loadAdminOrders() {
-  const container = document.getElementById('orders-list');
-  container.innerHTML = '<p class="muted">Loading orders…</p>';
-  try {
-    const orders = await adminApi('adminListOrders');
-    if (!orders || orders.length === 0) {
-      container.innerHTML = '<p class="muted">No orders yet.</p>';
-      return;
-    }
-    const rows = orders.map(function (o) {
-      const cls = o.status === 'PAID' ? 'paid' :
-                  o.status === 'FAILED' || o.status === 'CANCELLED' ? 'failed' : 'pending';
-      return '<tr>' +
-        '<td>' + escapeHtml(o.orderId) + '</td>' +
-        '<td>' + escapeHtml(o.itemTitle) + '</td>' +
-        '<td>' + formatMoney(o.amount) + '</td>' +
-        '<td>' + escapeHtml(o.customerName) + '<br><span class="muted">' + escapeHtml(o.phone) + '</span></td>' +
-        '<td>' + escapeHtml(o.paymentMethod) + '</td>' +
-        '<td><span class="badge badge-' + cls + '">' + escapeHtml(o.status) + '</span>' +
-          (o.fulfillment ? '<br><span class="muted">' + escapeHtml(o.fulfillment) + '</span>' : '') + '</td>' +
-        '<td>' + escapeHtml(o.createdAt) + '</td>' +
-      '</tr>';
-    }).join('');
-    container.innerHTML =
-      '<table class="data-table"><thead><tr>' +
-      '<th>Order</th><th>Item</th><th>Amount</th><th>Customer</th>' +
-      '<th>Method</th><th>Status</th><th>Date</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table>';
-  } catch (err) {
-    showError(err.message || 'Could not load orders.');
     container.innerHTML = '';
   }
 }
@@ -622,12 +681,12 @@ async function handleMaterialSubmit(e) {
   try {
     const editing = !!adminEditingId;
     const payload = {
-      title: document.getElementById('mat-title').value.trim(),
+      title:       document.getElementById('mat-title').value.trim(),
       description: document.getElementById('mat-description').value.trim(),
-      price: Number(document.getElementById('mat-price').value)
+      price:       Number(document.getElementById('mat-price').value)
     };
 
-    const fileInput = document.getElementById('mat-file');
+    const fileInput    = document.getElementById('mat-file');
     const manualFileId = document.getElementById('mat-fileid').value.trim();
 
     if (fileInput.files && fileInput.files[0]) {
@@ -638,8 +697,8 @@ async function handleMaterialSubmit(e) {
       setBusy(btn, true, 'Uploading file…');
       const data = await readFileAsBase64(file);
       payload.fileBase64 = data.base64;
-      payload.fileName = data.name;
-      payload.mimeType = data.mimeType;
+      payload.fileName   = data.name;
+      payload.mimeType   = data.mimeType;
     } else if (manualFileId) {
       payload.fileId = manualFileId;
     } else if (!editing) {
@@ -660,6 +719,87 @@ async function handleMaterialSubmit(e) {
   } finally {
     setBusy(btn, false);
     updateMaterialFormMode();
+  }
+}
+
+/* ---- Admin: orders (with Telebirr confirm/reject) ---- */
+async function loadAdminOrders() {
+  const container = document.getElementById('orders-list');
+  container.innerHTML = '<p class="muted">Loading orders…</p>';
+  try {
+    const orders = await adminApi('adminListOrders');
+    if (!orders || orders.length === 0) {
+      container.innerHTML = '<p class="muted">No orders yet.</p>';
+      return;
+    }
+    const rows = orders.map(function (o) {
+      const cls = o.status === 'PAID'   ? 'paid' :
+                  o.status === 'FAILED' || o.status === 'CANCELLED' ? 'failed' : 'pending';
+
+      let actions = '—';
+      if (o.paymentMethod === 'telebirr' &&
+          (o.status === 'SUBMITTED' || o.status === 'PENDING')) {
+        actions =
+          '<button class="btn btn-small btn-primary" data-confirm="' + escapeHtml(o.orderId) + '">Confirm</button> ' +
+          '<button class="btn btn-small btn-danger"  data-reject="'  + escapeHtml(o.orderId) + '">Reject</button>';
+      }
+
+      return '<tr>' +
+        '<td>' + escapeHtml(o.orderId) + '</td>' +
+        '<td>' + escapeHtml(o.itemTitle) + '</td>' +
+        '<td>' + formatMoney(o.amount) + '</td>' +
+        '<td>' + escapeHtml(o.customerName) +
+          '<br><span class="muted">' + escapeHtml(o.phone) + '</span></td>' +
+        '<td>' + escapeHtml(o.paymentMethod) +
+          '<br><span class="muted">TxID: ' + escapeHtml(o.gatewayRef || '—') + '</span></td>' +
+        '<td><span class="badge badge-' + cls + '">' + escapeHtml(o.status) + '</span>' +
+          (o.fulfillment ? '<br><span class="muted">' + escapeHtml(o.fulfillment) + '</span>' : '') +
+        '</td>' +
+        '<td>' + escapeHtml(o.createdAt) + '</td>' +
+        '<td class="actions-cell">' + actions + '</td>' +
+      '</tr>';
+    }).join('');
+
+    container.innerHTML =
+      '<table class="data-table"><thead><tr>' +
+      '<th>Order</th><th>Item</th><th>Amount</th><th>Customer</th>' +
+      '<th>Method / TxID</th><th>Status</th><th>Date</th><th>Actions</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    /* Confirm buttons */
+    container.querySelectorAll('button[data-confirm]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const id = btn.dataset.confirm;
+        if (!confirm('Confirm this payment? The customer will unlock their download.\n\nOrder: ' + id)) return;
+        btn.disabled = true;
+        try {
+          await adminApi('adminConfirmOrder', { orderId: id });
+          await loadAdminOrders();
+        } catch (err) {
+          showError(err.message || 'Confirm failed.');
+          btn.disabled = false;
+        }
+      });
+    });
+
+    /* Reject buttons */
+    container.querySelectorAll('button[data-reject]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const id = btn.dataset.reject;
+        const reason = prompt('Reason for rejecting this payment? (optional)') || 'Invalid transaction';
+        btn.disabled = true;
+        try {
+          await adminApi('adminRejectOrder', { orderId: id, reason: reason });
+          await loadAdminOrders();
+        } catch (err) {
+          showError(err.message || 'Reject failed.');
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (err) {
+    showError(err.message || 'Could not load orders.');
+    container.innerHTML = '';
   }
 }
 </script>
